@@ -1,16 +1,86 @@
-from rest_framework import viewsets, permissions
-from .models import Task, Department
-from .serializers import TaskSerializer, DepartmentSerializer
+from django.db.models import Q
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
-class TaskViewSet(viewsets.ModelViewSet):
-    queryset = Task.objects.all()
-    serializer_class = TaskSerializer
-    permission_classes = [permissions.AllowAny]  # Тимчасово дозволяємо доступ усім для перевірки
+from .models import Department, User, Task
+from .serializers import DepartmentSerializer, UserSerializer, TaskSerializer
+from .permissions import (
+    IsSuperAdmin,
+    IsManagerOrSuperAdmin,
+    IsApprovedUser,
+    is_super_admin,
+    is_manager,
+)
 
-    def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user if self.request.user.is_authenticated else None)
+
+class MeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        return Response(UserSerializer(request.user).data)
+
 
 class DepartmentViewSet(viewsets.ModelViewSet):
-    queryset = Department.objects.all()
     serializer_class = DepartmentSerializer
-    permission_classes = [permissions.AllowAny]
+
+    def get_permissions(self):
+        if self.action in ('create', 'update', 'partial_update', 'destroy'):
+            return [IsSuperAdmin()]
+        return [IsApprovedUser()]
+
+    def get_queryset(self):
+        user = self.request.user
+        if is_super_admin(user):
+            return Department.objects.all()
+        if user.department_id:
+            return Department.objects.filter(pk=user.department_id)
+        return Department.objects.none()
+
+
+class UserViewSet(viewsets.ModelViewSet):
+    serializer_class = UserSerializer
+    permission_classes = [IsManagerOrSuperAdmin]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = User.objects.select_related('department')
+        if is_super_admin(user):
+            return qs.all()
+        if is_manager(user) and user.department_id:
+            return qs.filter(department_id=user.department_id)
+        return qs.none()
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+
+class TaskViewSet(viewsets.ModelViewSet):
+    serializer_class = TaskSerializer
+    permission_classes = [IsApprovedUser]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = Task.objects.select_related(
+            'department', 'created_by', 'assigned_to'
+        )
+        if is_super_admin(user):
+            return qs.all()
+        if is_manager(user) and user.department_id:
+            return qs.filter(department_id=user.department_id)
+        return qs.filter(Q(assigned_to=user) | Q(created_by=user))
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        extra = {'created_by': user}
+        if is_manager(user) and user.department_id:
+            extra['department'] = user.department
+        serializer.save(**extra)
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
