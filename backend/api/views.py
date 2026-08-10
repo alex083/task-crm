@@ -1,11 +1,16 @@
 from django.db.models import Q
-from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import status, viewsets
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Department, User, Task
-from .serializers import DepartmentSerializer, UserSerializer, TaskSerializer
+from .serializers import (
+    DepartmentSerializer,
+    RegisterSerializer,
+    UserSerializer,
+    TaskSerializer,
+)
 from .permissions import (
     IsSuperAdmin,
     IsManagerOrSuperAdmin,
@@ -20,6 +25,32 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(UserSerializer(request.user).data)
+
+
+class RegisterView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = RegisterSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return Response(
+            {
+                'id': user.id,
+                'username': user.username,
+                'status': user.status,
+                'detail': 'Registration successful. Waiting for approval.',
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class PublicDepartmentListView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        departments = Department.objects.all().order_by('name')
+        return Response(DepartmentSerializer(departments, many=True).data)
 
 
 class DepartmentViewSet(viewsets.ModelViewSet):
