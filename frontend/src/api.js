@@ -61,3 +61,11 @@ export function deleteDepartment(token, id) {
 export function login(username, password) {
   return axios.post(`${API_URL}/token/`, { username, password });
 }
+
+export function register(data) {
+  return axios.post(`${API_URL}/register/`, data);
+}
+
+export function getPublicDepartments() {
+  return axios.get(`${API_URL}/public/departments/`);
+}
