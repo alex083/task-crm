@@ -282,6 +282,6 @@ This project is licensed under the **MIT License**.
 
 ## Author
 
-**Oleksandr Hordovenko**
+**Oleksandr**
 
 GitHub: https://github.com/alex083
