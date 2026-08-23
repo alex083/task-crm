@@ -6,10 +6,16 @@ from rest_framework.views import APIView
 
 from .models import Department, User, Task
 from .serializers import (
+    ChangePasswordSerializer,
     DepartmentSerializer,
     RegisterSerializer,
     UserSerializer,
     TaskSerializer,
+)
+from .notifications import (
+    notify_registration,
+    notify_task_assigned,
+    notify_user_approved,
 )
 from .permissions import (
     IsSuperAdmin,
@@ -27,6 +33,19 @@ class MeView(APIView):
         return Response(UserSerializer(request.user).data)
 
 
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = ChangePasswordSerializer(
+            data=request.data,
+            context={'request': request},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'detail': 'Password changed successfully.'})
+
+
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
@@ -34,6 +53,7 @@ class RegisterView(APIView):
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
+        notify_registration(user)
         return Response(
             {
                 'id': user.id,
@@ -88,6 +108,12 @@ class UserViewSet(viewsets.ModelViewSet):
         context['request'] = self.request
         return context
 
+    def perform_update(self, serializer):
+        previous_status = serializer.instance.status
+        user = serializer.save()
+        if previous_status != 'approved' and user.status == 'approved':
+            notify_user_approved(user)
+
 
 class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
@@ -109,7 +135,14 @@ class TaskViewSet(viewsets.ModelViewSet):
         extra = {'created_by': user}
         if is_manager(user) and user.department_id:
             extra['department'] = user.department
-        serializer.save(**extra)
+        task = serializer.save(**extra)
+        notify_task_assigned(task, actor=user)
+
+    def perform_update(self, serializer):
+        previous_assignee_id = serializer.instance.assigned_to_id
+        task = serializer.save()
+        if task.assigned_to_id and task.assigned_to_id != previous_assignee_id:
+            notify_task_assigned(task, actor=self.request.user)
 
     def get_serializer_context(self):
         context = super().get_serializer_context()

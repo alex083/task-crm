@@ -10,6 +10,12 @@ export function getMe(token) {
   return axios.get(`${API_URL}/me/`, { headers: authHeaders(token) });
 }
 
+export function changePassword(token, data) {
+  return axios.post(`${API_URL}/me/change-password/`, data, {
+    headers: authHeaders(token),
+  });
+}
+
 export function getTasks(token) {
   return axios.get(`${API_URL}/tasks/`, { headers: authHeaders(token) });
 }

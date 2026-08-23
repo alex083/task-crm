@@ -4,6 +4,7 @@ import {
   login,
   register,
   getMe,
+  changePassword,
   getTasks,
   createTask,
   updateTask,
@@ -19,6 +20,7 @@ import {
   deleteDepartment,
 } from './api';
 import Modal from './components/Modal';
+import KanbanBoard from './components/KanbanBoard';
 
 const ROLE_LABELS = {
   super_admin: 'Super Admin',
@@ -44,22 +46,23 @@ const TASK_STATUS_LABELS = {
   done: 'Done',
 };
 
-const btn = (bg) => ({
-  padding: '6px 12px',
-  background: bg,
-  color: 'white',
-  border: 'none',
-  borderRadius: '4px',
-  cursor: 'pointer',
-});
+const fieldClass =
+  'w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500';
+const labelClass = 'mb-1 block text-sm font-medium text-slate-700';
+const btnPrimary =
+  'rounded-md bg-sky-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-700';
+const btnSuccess =
+  'rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700';
+const btnDanger =
+  'rounded-md bg-rose-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-rose-700';
+const btnMuted =
+  'rounded-md bg-slate-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-600';
+const cardClass = 'rounded-lg border border-slate-200 bg-white p-4 shadow-sm';
 
-const inputStyle = { padding: '8px', boxSizing: 'border-box', width: '100%' };
-
-const navLinkStyle = ({ isActive }) => ({
-  ...btn(isActive ? '#007BFF' : '#6c757d'),
-  textDecoration: 'none',
-  display: 'inline-block',
-});
+const navClass = ({ isActive }) =>
+  `rounded-md px-3 py-1.5 text-sm font-medium text-white no-underline ${
+    isActive ? 'bg-sky-600' : 'bg-slate-500 hover:bg-slate-600'
+  }`;
 
 function App() {
   const navigate = useNavigate();
@@ -82,11 +85,15 @@ function App() {
   const [selectedTask, setSelectedTask] = useState(null);
   const [publicDepartments, setPublicDepartments] = useState([]);
   const [signupSuccess, setSignupSuccess] = useState('');
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   const isSuperAdmin = currentUser?.role === 'super_admin';
   const isManager = currentUser?.role === 'manager';
   const canManage = isSuperAdmin || isManager;
   const isApproved = isSuperAdmin || currentUser?.status === 'approved';
+
+  const editingTask = tasks.find((t) => t.id === editingTaskId) || null;
 
   const showError = (err, fallback) => {
     const detail = err.response?.data;
@@ -195,7 +202,29 @@ function App() {
     setDepartments([]);
     setCreateModal(null);
     setSelectedTask(null);
+    setEditingTaskId(null);
+    setPasswordModalOpen(false);
+    setSuccessMessage('');
     navigate('/');
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    try {
+      await changePassword(token, {
+        current_password: form.current_password.value,
+        new_password: form.new_password.value,
+        confirm_password: form.confirm_password.value,
+      });
+      form.reset();
+      setPasswordModalOpen(false);
+      setMessage('');
+      setSuccessMessage('Password changed successfully.');
+    } catch (err) {
+      setSuccessMessage('');
+      setMessage(showError(err, 'Failed to change password'));
+    }
   };
 
   const handleCreateTask = async (e) => {
@@ -232,13 +261,25 @@ function App() {
     if (isSuperAdmin && form.department.value) {
       data.department = Number(form.department.value);
     }
-    data.assigned_to = form.assigned_to.value ? Number(form.assigned_to.value) : null;
+    if (canManage) {
+      data.assigned_to = form.assigned_to.value ? Number(form.assigned_to.value) : null;
+    }
     try {
       await updateTask(token, taskId, data);
       setEditingTaskId(null);
       loadAll();
     } catch (err) {
       setMessage(showError(err, 'Failed to update task'));
+    }
+  };
+
+  const handleTaskStatusChange = async (task, status) => {
+    if (task.status === status) return;
+    try {
+      await updateTask(token, task.id, { status });
+      loadAll();
+    } catch (err) {
+      setMessage(showError(err, 'Failed to update task status'));
     }
   };
 
@@ -320,239 +361,260 @@ function App() {
     : ['employee', 'manager'];
 
   const pageHeader = (title, count, createLabel, createKey, showCreate = true) => (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '12px', flexWrap: 'wrap' }}>
-      <h3 style={{ margin: 0 }}>{title} ({count})</h3>
+    <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <h3 className="text-lg font-semibold text-slate-800">
+        {title} <span className="text-slate-400">({count})</span>
+      </h3>
       {showCreate && (
-        <button type="button" onClick={() => setCreateModal(createKey)} style={btn('#28a745')}>
+        <button type="button" onClick={() => setCreateModal(createKey)} className={btnSuccess}>
           {createLabel}
         </button>
       )}
     </div>
   );
 
+  const taskFormFields = (task = null) => (
+    <>
+      <input
+        name="title"
+        placeholder="Title"
+        defaultValue={task?.title || ''}
+        className={fieldClass}
+        required
+      />
+      <textarea
+        name="description"
+        placeholder="Description"
+        defaultValue={task?.description || ''}
+        className={`${fieldClass} min-h-[90px]`}
+      />
+      <select name="priority" defaultValue={task?.priority || 'medium'} className={fieldClass}>
+        {Object.entries(PRIORITY_LABELS).map(([v, l]) => (
+          <option key={v} value={v}>{l}</option>
+        ))}
+      </select>
+      <select name="status" defaultValue={task?.status || 'todo'} className={fieldClass}>
+        {Object.entries(TASK_STATUS_LABELS).map(([v, l]) => (
+          <option key={v} value={v}>{l}</option>
+        ))}
+      </select>
+      {isSuperAdmin && (
+        <select name="department" defaultValue={task?.department || ''} className={fieldClass}>
+          <option value="">— Department —</option>
+          {departments.map((d) => (
+            <option key={d.id} value={d.id}>{d.name}</option>
+          ))}
+        </select>
+      )}
+      {canManage && (
+        <select name="assigned_to" defaultValue={task?.assigned_to || ''} className={fieldClass}>
+          <option value="">— Assignee —</option>
+          {assignableUsers.map((u) => (
+            <option key={u.id} value={u.id}>{u.username}</option>
+          ))}
+        </select>
+      )}
+    </>
+  );
+
   if (token && currentUser) {
     if (!isApproved) {
       return (
-        <div style={{ fontFamily: 'sans-serif', maxWidth: '480px', margin: '50px auto', padding: '20px', border: '1px solid #ccc', borderRadius: '8px' }}>
-          <h2 style={{ marginTop: 0 }}>Account pending</h2>
-          <p style={{ color: '#666', lineHeight: 1.5 }}>
+        <div className="mx-auto mt-16 max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="mb-2 text-xl font-semibold">Account pending</h2>
+          <p className="mb-4 text-sm leading-relaxed text-slate-600">
             Hello, <strong>{currentUser.username}</strong>. Your status is{' '}
             <strong>{STATUS_LABELS[currentUser.status] || currentUser.status}</strong>.
             You can sign in after a manager or super admin approves your account.
           </p>
-          <button onClick={handleLogout} style={btn('#dc3545')}>Log out</button>
+          <button onClick={handleLogout} className={btnDanger}>Log out</button>
         </div>
       );
     }
 
     return (
-      <div style={{ fontFamily: 'sans-serif', maxWidth: '900px', margin: '30px auto', padding: '20px', border: '1px solid #ccc', borderRadius: '8px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <div>
-            <h2 style={{ margin: 0 }}>Task CRM</h2>
-            <small style={{ color: '#666' }}>
-              {currentUser.username} — {ROLE_LABELS[currentUser.role]}
-              {currentUser.department_name ? ` (${currentUser.department_name})` : ''}
-            </small>
+      <div className="mx-auto min-h-screen max-w-7xl px-4 py-6 sm:px-6">
+        <div className="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">Task CRM</h1>
+              <p className="text-sm text-slate-500">
+                {currentUser.username} — {ROLE_LABELS[currentUser.role]}
+                {currentUser.department_name ? ` (${currentUser.department_name})` : ''}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => setPasswordModalOpen(true)} className={btnMuted}>
+                Change password
+              </button>
+              <button onClick={handleLogout} className={btnDanger}>Log out</button>
+            </div>
           </div>
-          <button onClick={handleLogout} style={btn('#dc3545')}>Log out</button>
+
+          {successMessage && (
+            <div className="mb-3 flex items-start justify-between rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+              <span>{successMessage}</span>
+              <button type="button" onClick={() => setSuccessMessage('')} className={btnMuted}>×</button>
+            </div>
+          )}
+
+          {message && (
+            <div className="mb-3 flex items-start justify-between rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-800">
+              <span>{message}</span>
+              <button type="button" onClick={() => setMessage('')} className={btnMuted}>×</button>
+            </div>
+          )}
+
+          <nav className="flex flex-wrap gap-2">
+            <NavLink to="/tasks" className={navClass}>Board</NavLink>
+            {canManage && <NavLink to="/employees" className={navClass}>Employees</NavLink>}
+            {canManage && <NavLink to="/departments" className={navClass}>Departments</NavLink>}
+          </nav>
         </div>
 
-        {message && (
-          <p style={{ color: '#c0392b', background: '#fdecea', padding: '10px', borderRadius: '4px' }}>
-            {message}
-            <button onClick={() => setMessage('')} style={{ float: 'right', ...btn('#999') }}>×</button>
-          </p>
-        )}
-
-        <nav style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
-          <NavLink to="/tasks" style={navLinkStyle}>Tasks</NavLink>
-          {canManage && <NavLink to="/employees" style={navLinkStyle}>Employees</NavLink>}
-          {canManage && <NavLink to="/departments" style={navLinkStyle}>Departments</NavLink>}
-        </nav>
-
-        {loading && <p>Loading...</p>}
+        {loading && <p className="text-slate-500">Loading...</p>}
 
         {!loading && (
           <Routes>
             <Route
               path="/tasks"
               element={(
-                <>
-                  {pageHeader('Tasks', tasks.length, 'Create task', 'task')}
-                  {tasks.length === 0 ? <p>No tasks</p> : tasks.map((task) => (
-                    <div
-                      key={task.id}
-                      onClick={() => {
-                        if (editingTaskId !== task.id) setSelectedTask(task);
-                      }}
-                      style={{
-                        background: '#f8f9fa',
-                        padding: '12px',
-                        marginBottom: '10px',
-                        borderRadius: '5px',
-                        borderLeft: '4px solid #007BFF',
-                        cursor: editingTaskId === task.id ? 'default' : 'pointer',
-                      }}
-                    >
-                      {editingTaskId === task.id ? (
-                        <form
-                          onClick={(e) => e.stopPropagation()}
-                          onSubmit={(e) => { e.preventDefault(); handleUpdateTask(task.id, e.target); }}
-                          style={{ display: 'grid', gap: '8px' }}
-                        >
-                          <input name="title" defaultValue={task.title} style={inputStyle} required />
-                          <textarea name="description" defaultValue={task.description} style={inputStyle} />
-                          <select name="priority" defaultValue={task.priority} style={inputStyle}>
-                            {Object.entries(PRIORITY_LABELS).map(([v, l]) => (
-                              <option key={v} value={v}>{l}</option>
-                            ))}
-                          </select>
-                          <select name="status" defaultValue={task.status} style={inputStyle}>
-                            {Object.entries(TASK_STATUS_LABELS).map(([v, l]) => (
-                              <option key={v} value={v}>{l}</option>
-                            ))}
-                          </select>
-                          {isSuperAdmin && (
-                            <select name="department" defaultValue={task.department || ''} style={inputStyle}>
-                              <option value="">— Department —</option>
-                              {departments.map((d) => (
-                                <option key={d.id} value={d.id}>{d.name}</option>
-                              ))}
-                            </select>
-                          )}
-                          {canManage && (
-                            <select name="assigned_to" defaultValue={task.assigned_to || ''} style={inputStyle}>
-                              <option value="">— Assignee —</option>
-                              {assignableUsers.map((u) => (
-                                <option key={u.id} value={u.id}>{u.username}</option>
-                              ))}
-                            </select>
-                          )}
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <button type="submit" style={btn('#007BFF')}>Save</button>
-                            <button type="button" onClick={() => setEditingTaskId(null)} style={btn('#6c757d')}>Cancel</button>
-                          </div>
-                        </form>
-                      ) : (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-                          <div style={{ minWidth: 0 }}>
-                            <strong>{task.title}</strong>
-                            <div style={{ color: '#666', fontSize: '14px', marginTop: '4px' }}>
-                              {TASK_STATUS_LABELS[task.status]} · {PRIORITY_LABELS[task.priority]}
-                              {task.department_name ? ` · ${task.department_name}` : ''}
-                              {task.assigned_to_username ? ` · → ${task.assigned_to_username}` : ''}
-                            </div>
-                          </div>
-                          {canManage && (
-                            <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-                              <button onClick={() => setEditingTaskId(task.id)} style={btn('#007BFF')}>Edit</button>
-                              <button onClick={() => deleteTask(token, task.id).then(loadAll)} style={btn('#dc3545')}>Delete</button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </>
+                <div>
+                  {pageHeader('Task board', tasks.length, 'Create task', 'task')}
+                  <KanbanBoard
+                    tasks={tasks}
+                    priorityLabels={PRIORITY_LABELS}
+                    canManage={canManage}
+                    onOpenTask={setSelectedTask}
+                    onEditTask={(id) => {
+                      setSelectedTask(null);
+                      setEditingTaskId(id);
+                    }}
+                    onDeleteTask={(id) => deleteTask(token, id).then(loadAll)}
+                    onStatusChange={handleTaskStatusChange}
+                  />
+                </div>
               )}
             />
 
             <Route
               path="/employees"
               element={canManage ? (
-                <>
+                <div>
                   {pageHeader('Employees', users.length, 'Create employee', 'user')}
-                  {users.length === 0 ? <p>No employees</p> : users.map((user) => (
-                    <div key={user.id} style={{ background: '#f8f9fa', padding: '12px', marginBottom: '10px', borderRadius: '5px' }}>
-                      {editingUserId === user.id ? (
-                        <form onSubmit={(e) => { e.preventDefault(); handleUpdateUser(user.id, e.target); }} style={{ display: 'grid', gap: '8px' }}>
-                          <input name="email" defaultValue={user.email} style={inputStyle} />
-                          <input name="first_name" defaultValue={user.first_name} style={inputStyle} />
-                          <input name="last_name" defaultValue={user.last_name} style={inputStyle} />
-                          <input name="password" type="password" placeholder="New password (optional)" style={inputStyle} />
-                          <select name="role" defaultValue={user.role} style={inputStyle}>
-                            {roleOptions.map((r) => (
-                              <option key={r} value={r}>{ROLE_LABELS[r]}</option>
-                            ))}
-                          </select>
-                          <select name="status" defaultValue={user.status} style={inputStyle}>
-                            {Object.entries(STATUS_LABELS).map(([v, l]) => (
-                              <option key={v} value={v}>{l}</option>
-                            ))}
-                          </select>
-                          {isSuperAdmin && (
-                            <select name="department" defaultValue={user.department || ''} style={inputStyle}>
-                              <option value="">— No department —</option>
-                              {departments.map((d) => (
-                                <option key={d.id} value={d.id}>{d.name}</option>
+                  <div className="space-y-3">
+                    {users.length === 0 ? (
+                      <p className="text-slate-500">No employees</p>
+                    ) : users.map((user) => (
+                      <div key={user.id} className={cardClass}>
+                        {editingUserId === user.id ? (
+                          <form
+                            onSubmit={(e) => { e.preventDefault(); handleUpdateUser(user.id, e.target); }}
+                            className="grid gap-2"
+                          >
+                            <input name="email" defaultValue={user.email} className={fieldClass} />
+                            <input name="first_name" defaultValue={user.first_name} className={fieldClass} />
+                            <input name="last_name" defaultValue={user.last_name} className={fieldClass} />
+                            <input name="password" type="password" placeholder="New password (optional)" className={fieldClass} />
+                            <select name="role" defaultValue={user.role} className={fieldClass}>
+                              {roleOptions.map((r) => (
+                                <option key={r} value={r}>{ROLE_LABELS[r]}</option>
                               ))}
                             </select>
-                          )}
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <button type="submit" style={btn('#007BFF')}>Save</button>
-                            <button type="button" onClick={() => setEditingUserId(null)} style={btn('#6c757d')}>Cancel</button>
-                          </div>
-                        </form>
-                      ) : (
-                        <>
-                          <strong>{user.username}</strong>
-                          <span style={{ marginLeft: '8px', color: '#666' }}>
-                            {ROLE_LABELS[user.role]} · {STATUS_LABELS[user.status]}
-                          </span>
-                          {user.department_name && <span style={{ marginLeft: '8px' }}>[{user.department_name}]</span>}
-                          <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-                            <button onClick={() => setEditingUserId(user.id)} style={btn('#007BFF')}>Edit</button>
-                            {user.id !== currentUser.id && (
-                              <button onClick={() => deleteUser(token, user.id).then(loadAll)} style={btn('#dc3545')}>Delete</button>
+                            <select name="status" defaultValue={user.status} className={fieldClass}>
+                              {Object.entries(STATUS_LABELS).map(([v, l]) => (
+                                <option key={v} value={v}>{l}</option>
+                              ))}
+                            </select>
+                            {isSuperAdmin && (
+                              <select name="department" defaultValue={user.department || ''} className={fieldClass}>
+                                <option value="">— No department —</option>
+                                {departments.map((d) => (
+                                  <option key={d.id} value={d.id}>{d.name}</option>
+                                ))}
+                              </select>
                             )}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </>
+                            <div className="flex gap-2">
+                              <button type="submit" className={btnPrimary}>Save</button>
+                              <button type="button" onClick={() => setEditingUserId(null)} className={btnMuted}>Cancel</button>
+                            </div>
+                          </form>
+                        ) : (
+                          <>
+                            <div className="flex flex-wrap items-baseline gap-2">
+                              <strong className="text-slate-800">{user.username}</strong>
+                              <span className="text-sm text-slate-500">
+                                {ROLE_LABELS[user.role]} · {STATUS_LABELS[user.status]}
+                              </span>
+                              {user.department_name && (
+                                <span className="text-sm text-slate-500">[{user.department_name}]</span>
+                              )}
+                            </div>
+                            <div className="mt-3 flex gap-2">
+                              <button onClick={() => setEditingUserId(user.id)} className={btnPrimary}>Edit</button>
+                              {user.id !== currentUser.id && (
+                                <button
+                                  onClick={() => deleteUser(token, user.id).then(loadAll)}
+                                  className={btnDanger}
+                                >
+                                  Delete
+                                </button>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               ) : <Navigate to="/tasks" replace />}
             />
 
             <Route
               path="/departments"
               element={canManage ? (
-                <>
+                <div>
                   {pageHeader('Departments', departments.length, 'Create department', 'department', isSuperAdmin)}
-                  {departments.map((dept) => (
-                    <div key={dept.id} style={{ background: '#f8f9fa', padding: '12px', marginBottom: '10px', borderRadius: '5px' }}>
-                      {editingDeptId === dept.id && isSuperAdmin ? (
-                        <form
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            handleUpdateDepartment(dept.id, e.target.name.value);
-                          }}
-                          style={{ display: 'flex', gap: '8px' }}
-                        >
-                          <input name="name" defaultValue={dept.name} style={{ ...inputStyle, flex: 1 }} required />
-                          <button type="submit" style={btn('#007BFF')}>Save</button>
-                          <button type="button" onClick={() => setEditingDeptId(null)} style={btn('#6c757d')}>Cancel</button>
-                        </form>
-                      ) : (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <strong>{dept.name}</strong>
-                          {isSuperAdmin && (
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                              <button onClick={() => setEditingDeptId(dept.id)} style={btn('#007BFF')}>Edit</button>
-                              <button onClick={() => deleteDepartment(token, dept.id).then(loadAll)} style={btn('#dc3545')}>Delete</button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                  <div className="space-y-3">
+                    {departments.map((dept) => (
+                      <div key={dept.id} className={cardClass}>
+                        {editingDeptId === dept.id && isSuperAdmin ? (
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              handleUpdateDepartment(dept.id, e.target.name.value);
+                            }}
+                            className="flex flex-wrap gap-2"
+                          >
+                            <input name="name" defaultValue={dept.name} className={`${fieldClass} flex-1`} required />
+                            <button type="submit" className={btnPrimary}>Save</button>
+                            <button type="button" onClick={() => setEditingDeptId(null)} className={btnMuted}>Cancel</button>
+                          </form>
+                        ) : (
+                          <div className="flex items-center justify-between gap-3">
+                            <strong>{dept.name}</strong>
+                            {isSuperAdmin && (
+                              <div className="flex gap-2">
+                                <button onClick={() => setEditingDeptId(dept.id)} className={btnPrimary}>Edit</button>
+                                <button
+                                  onClick={() => deleteDepartment(token, dept.id).then(loadAll)}
+                                  className={btnDanger}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                   {isManager && !isSuperAdmin && (
-                    <p style={{ color: '#666', fontSize: '14px' }}>
+                    <p className="mt-3 text-sm text-slate-500">
                       As a manager, you can only see your own department. Creating and editing departments is available to super admin.
                     </p>
                   )}
-                </>
+                </div>
               ) : <Navigate to="/tasks" replace />}
             />
 
@@ -564,45 +626,38 @@ function App() {
           open={Boolean(selectedTask)}
           title={selectedTask?.title || 'Task details'}
           onClose={() => setSelectedTask(null)}
+          wide
         >
           {selectedTask && (
-            <div style={{ display: 'grid', gap: '14px' }}>
-              <div style={{ display: 'grid', gap: '8px', fontSize: '14px' }}>
-                <div><strong>Status:</strong> {TASK_STATUS_LABELS[selectedTask.status]}</div>
-                <div><strong>Priority:</strong> {PRIORITY_LABELS[selectedTask.priority]}</div>
-                <div><strong>Department:</strong> {selectedTask.department_name || '—'}</div>
-                <div><strong>Assignee:</strong> {selectedTask.assigned_to_username || '—'}</div>
-                <div><strong>Created by:</strong> {selectedTask.created_by_username || '—'}</div>
+            <div className="grid gap-4">
+              <div className="grid gap-2 text-sm text-slate-700">
+                <div><span className="font-semibold">Status:</span> {TASK_STATUS_LABELS[selectedTask.status]}</div>
+                <div><span className="font-semibold">Priority:</span> {PRIORITY_LABELS[selectedTask.priority]}</div>
+                <div><span className="font-semibold">Department:</span> {selectedTask.department_name || '—'}</div>
+                <div><span className="font-semibold">Assignee:</span> {selectedTask.assigned_to_username || '—'}</div>
+                <div><span className="font-semibold">Created by:</span> {selectedTask.created_by_username || '—'}</div>
                 <div>
-                  <strong>Created at:</strong>{' '}
+                  <span className="font-semibold">Created at:</span>{' '}
                   {selectedTask.created_at
                     ? new Date(selectedTask.created_at).toLocaleString()
                     : '—'}
                 </div>
               </div>
               <div>
-                <strong style={{ display: 'block', marginBottom: '6px' }}>Description</strong>
-                <p style={{
-                  margin: 0,
-                  whiteSpace: 'pre-wrap',
-                  background: '#f8f9fa',
-                  padding: '12px',
-                  borderRadius: '6px',
-                  lineHeight: 1.5,
-                  minHeight: '60px',
-                }}>
+                <strong className="mb-2 block text-sm">Description</strong>
+                <p className="min-h-[60px] whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm leading-relaxed text-slate-700">
                   {selectedTask.description?.trim() ? selectedTask.description : 'No description'}
                 </p>
               </div>
               {canManage && (
-                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                <div className="flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => {
                       setEditingTaskId(selectedTask.id);
                       setSelectedTask(null);
                     }}
-                    style={btn('#007BFF')}
+                    className={btnPrimary}
                   >
                     Edit
                   </button>
@@ -614,7 +669,7 @@ function App() {
                         loadAll();
                       });
                     }}
-                    style={btn('#dc3545')}
+                    className={btnDanger}
                   >
                     Delete
                   </button>
@@ -624,81 +679,89 @@ function App() {
           )}
         </Modal>
 
-        <Modal open={createModal === 'task'} title="Create task" onClose={() => setCreateModal(null)}>
-          <form onSubmit={handleCreateTask} style={{ display: 'grid', gap: '10px' }}>
-            <input name="title" placeholder="Title" style={inputStyle} required />
-            <textarea name="description" placeholder="Description" style={inputStyle} />
-            <select name="priority" defaultValue="medium" style={inputStyle}>
-              {Object.entries(PRIORITY_LABELS).map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
-            </select>
-            <select name="status" defaultValue="todo" style={inputStyle}>
-              {Object.entries(TASK_STATUS_LABELS).map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
-            </select>
-            {isSuperAdmin && (
-              <select name="department" style={inputStyle}>
-                <option value="">— Department —</option>
-                {departments.map((d) => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
-            )}
-            {canManage && (
-              <select name="assigned_to" style={inputStyle}>
-                <option value="">— Assignee —</option>
-                {assignableUsers.map((u) => (
-                  <option key={u.id} value={u.id}>{u.username}</option>
-                ))}
-              </select>
-            )}
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={() => setCreateModal(null)} style={btn('#6c757d')}>Cancel</button>
-              <button type="submit" style={btn('#28a745')}>Create</button>
+        <Modal
+          open={Boolean(editingTask)}
+          title="Edit task"
+          onClose={() => setEditingTaskId(null)}
+          wide
+        >
+          {editingTask && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleUpdateTask(editingTask.id, e.target);
+              }}
+              className="grid gap-3"
+            >
+              {taskFormFields(editingTask)}
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setEditingTaskId(null)} className={btnMuted}>Cancel</button>
+                <button type="submit" className={btnPrimary}>Save</button>
+              </div>
+            </form>
+          )}
+        </Modal>
+
+        <Modal open={passwordModalOpen} title="Change password" onClose={() => setPasswordModalOpen(false)}>
+          <form onSubmit={handleChangePassword} className="grid gap-3">
+            <input name="current_password" type="password" placeholder="Current password" className={fieldClass} required />
+            <input name="new_password" type="password" placeholder="New password" className={fieldClass} required minLength={6} />
+            <input name="confirm_password" type="password" placeholder="Confirm new password" className={fieldClass} required minLength={6} />
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setPasswordModalOpen(false)} className={btnMuted}>Cancel</button>
+              <button type="submit" className={btnPrimary}>Save</button>
+            </div>
+          </form>
+        </Modal>
+
+        <Modal open={createModal === 'task'} title="Create task" onClose={() => setCreateModal(null)} wide>
+          <form onSubmit={handleCreateTask} className="grid gap-3">
+            {taskFormFields()}
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setCreateModal(null)} className={btnMuted}>Cancel</button>
+              <button type="submit" className={btnSuccess}>Create</button>
             </div>
           </form>
         </Modal>
 
         <Modal open={createModal === 'user'} title="Create employee" onClose={() => setCreateModal(null)}>
-          <form onSubmit={handleCreateUser} style={{ display: 'grid', gap: '10px' }}>
-            <input name="username" placeholder="Username" style={inputStyle} required />
-            <input name="email" type="email" placeholder="Email" style={inputStyle} />
-            <input name="password" type="password" placeholder="Password" style={inputStyle} required />
-            <input name="first_name" placeholder="First name" style={inputStyle} />
-            <input name="last_name" placeholder="Last name" style={inputStyle} />
-            <select name="role" defaultValue="employee" style={inputStyle}>
+          <form onSubmit={handleCreateUser} className="grid gap-3">
+            <input name="username" placeholder="Username" className={fieldClass} required />
+            <input name="email" type="email" placeholder="Email" className={fieldClass} />
+            <input name="password" type="password" placeholder="Password" className={fieldClass} required />
+            <input name="first_name" placeholder="First name" className={fieldClass} />
+            <input name="last_name" placeholder="Last name" className={fieldClass} />
+            <select name="role" defaultValue="employee" className={fieldClass}>
               {roleOptions.map((r) => (
                 <option key={r} value={r}>{ROLE_LABELS[r]}</option>
               ))}
             </select>
-            <select name="status" defaultValue="approved" style={inputStyle}>
+            <select name="status" defaultValue="approved" className={fieldClass}>
               {Object.entries(STATUS_LABELS).map(([v, l]) => (
                 <option key={v} value={v}>{l}</option>
               ))}
             </select>
             {isSuperAdmin && (
-              <select name="department" style={inputStyle}>
+              <select name="department" className={fieldClass}>
                 <option value="">— Department —</option>
                 {departments.map((d) => (
                   <option key={d.id} value={d.id}>{d.name}</option>
                 ))}
               </select>
             )}
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={() => setCreateModal(null)} style={btn('#6c757d')}>Cancel</button>
-              <button type="submit" style={btn('#28a745')}>Create</button>
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setCreateModal(null)} className={btnMuted}>Cancel</button>
+              <button type="submit" className={btnSuccess}>Create</button>
             </div>
           </form>
         </Modal>
 
         <Modal open={createModal === 'department'} title="Create department" onClose={() => setCreateModal(null)}>
-          <form onSubmit={handleCreateDepartment} style={{ display: 'grid', gap: '10px' }}>
-            <input name="name" placeholder="Department name" style={inputStyle} required />
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={() => setCreateModal(null)} style={btn('#6c757d')}>Cancel</button>
-              <button type="submit" style={btn('#28a745')}>Create</button>
+          <form onSubmit={handleCreateDepartment} className="grid gap-3">
+            <input name="name" placeholder="Department name" className={fieldClass} required />
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setCreateModal(null)} className={btnMuted}>Cancel</button>
+              <button type="submit" className={btnSuccess}>Create</button>
             </div>
           </form>
         </Modal>
@@ -707,48 +770,39 @@ function App() {
   }
 
   if (token && !currentUser) {
-    return <div style={{ textAlign: 'center', marginTop: '50px' }}>Loading...</div>;
+    return <div className="mt-16 text-center text-slate-500">Loading...</div>;
   }
-
-  const authBox = {
-    fontFamily: 'sans-serif',
-    maxWidth: '400px',
-    margin: '50px auto',
-    padding: '20px',
-    border: '1px solid #ccc',
-    borderRadius: '8px',
-  };
 
   return (
     <Routes>
       <Route
         path="/signup"
         element={(
-          <div style={authBox}>
-            <h2 style={{ marginTop: 0 }}>Sign up</h2>
-            <p style={{ color: '#666', fontSize: '14px', marginTop: 0 }}>
+          <div className="mx-auto mt-12 max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-1 text-xl font-semibold">Sign up</h2>
+            <p className="mb-4 text-sm text-slate-500">
               Create an employee account. A manager must approve it before you can work in the CRM.
             </p>
-            <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <form onSubmit={handleRegister} className="grid gap-3">
               <div>
-                <label>Email</label><br />
-                <input name="email" type="email" style={inputStyle} required />
+                <label className={labelClass}>Email</label>
+                <input name="email" type="email" className={fieldClass} required />
               </div>
               <div>
-                <label>Login</label><br />
-                <input name="username" style={inputStyle} required />
+                <label className={labelClass}>Login</label>
+                <input name="username" className={fieldClass} required />
               </div>
               <div>
-                <label>Name</label><br />
-                <input name="first_name" style={inputStyle} required />
+                <label className={labelClass}>Name</label>
+                <input name="first_name" className={fieldClass} required />
               </div>
               <div>
-                <label>Surname</label><br />
-                <input name="last_name" style={inputStyle} required />
+                <label className={labelClass}>Surname</label>
+                <input name="last_name" className={fieldClass} required />
               </div>
               <div>
-                <label>Department</label><br />
-                <select name="department" style={inputStyle} required defaultValue="">
+                <label className={labelClass}>Department</label>
+                <select name="department" className={fieldClass} required defaultValue="">
                   <option value="" disabled>— Select department —</option>
                   {publicDepartments.map((d) => (
                     <option key={d.id} value={d.id}>{d.name}</option>
@@ -756,41 +810,59 @@ function App() {
                 </select>
               </div>
               <div>
-                <label>Password</label><br />
-                <input name="password" type="password" style={inputStyle} required minLength={6} />
+                <label className={labelClass}>Password</label>
+                <input name="password" type="password" className={fieldClass} required minLength={6} />
               </div>
-              <button type="submit" style={btn('#28a745')}>Sign up</button>
+              <button type="submit" className={btnSuccess}>Sign up</button>
             </form>
-            <p style={{ marginTop: '16px', textAlign: 'center' }}>
+            <p className="mt-4 text-center text-sm text-slate-600">
               Already have an account?{' '}
-              <Link to="/" onClick={() => setMessage('')}>Sign in</Link>
+              <Link className="text-sky-600 hover:underline" to="/" onClick={() => setMessage('')}>Sign in</Link>
             </p>
-            {message && <p style={{ color: 'red', marginTop: '10px' }}>{message}</p>}
+            {message && <p className="mt-3 text-sm text-rose-600">{message}</p>}
           </div>
         )}
       />
       <Route
         path="*"
         element={(
-          <div style={authBox}>
-            <h2 style={{ marginTop: 0 }}>Sign in to Task CRM</h2>
-            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div className="mx-auto mt-12 max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-4 text-xl font-semibold">Sign in to Task CRM</h2>
+            <form onSubmit={handleLogin} className="grid gap-3">
               <div>
-                <label>Username:</label><br />
-                <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} style={inputStyle} required />
+                <label className={labelClass}>Username</label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className={fieldClass}
+                  required
+                />
               </div>
               <div>
-                <label>Password:</label><br />
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} required />
+                <label className={labelClass}>Password</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={fieldClass}
+                  required
+                />
               </div>
-              <button type="submit" style={btn('#007BFF')}>Sign in</button>
+              <button type="submit" className={btnPrimary}>Sign in</button>
             </form>
-            <p style={{ marginTop: '16px', textAlign: 'center' }}>
+            <p className="mt-4 text-center text-sm text-slate-600">
               No account?{' '}
-              <Link to="/signup" onClick={() => { setMessage(''); setSignupSuccess(''); }}>Sign up</Link>
+              <Link
+                className="text-sky-600 hover:underline"
+                to="/signup"
+                onClick={() => { setMessage(''); setSignupSuccess(''); }}
+              >
+                Sign up
+              </Link>
             </p>
-            {signupSuccess && <p style={{ color: '#1e7e34', marginTop: '10px' }}>{signupSuccess}</p>}
-            {message && <p style={{ color: 'red', marginTop: '10px' }}>{message}</p>}
+            {signupSuccess && <p className="mt-3 text-sm text-emerald-700">{signupSuccess}</p>}
+            {message && <p className="mt-3 text-sm text-rose-600">{message}</p>}
           </div>
         )}
       />

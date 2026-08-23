@@ -1,28 +1,6 @@
 import React, { useEffect } from 'react';
 
-const overlayStyle = {
-  position: 'fixed',
-  inset: 0,
-  background: 'rgba(0, 0, 0, 0.45)',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  zIndex: 1000,
-  padding: '16px',
-};
-
-const panelStyle = {
-  background: '#fff',
-  borderRadius: '8px',
-  padding: '20px',
-  width: '100%',
-  maxWidth: '480px',
-  maxHeight: '90vh',
-  overflowY: 'auto',
-  boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-};
-
-function Modal({ open, title, onClose, children }) {
+function Modal({ open, title, onClose, children, wide = false }) {
   useEffect(() => {
     if (!open) return undefined;
     const onKey = (e) => {
@@ -36,30 +14,23 @@ function Modal({ open, title, onClose, children }) {
 
   return (
     <div
-      style={overlayStyle}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
       onClick={onClose}
       role="presentation"
     >
       <div
-        style={panelStyle}
+        className={`max-h-[90vh] w-full overflow-y-auto rounded-xl bg-white p-5 shadow-2xl ${wide ? 'max-w-xl' : 'max-w-md'}`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-label={title}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h3 style={{ margin: 0 }}>{title}</h3>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-slate-800">{title}</h3>
           <button
             type="button"
             onClick={onClose}
-            style={{
-              padding: '4px 10px',
-              background: '#6c757d',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-            }}
+            className="rounded-md bg-slate-500 px-2.5 py-1 text-sm text-white hover:bg-slate-600"
           >
             ×
           </button>
