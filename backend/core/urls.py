@@ -27,4 +27,4 @@ if (frontend_dir / 'index.html').exists():
             {'document_root': frontend_dir / 'assets'},
         ),
         re_path(r'^(?!api/|admin/|static/).*$', spa_index),
-    }
+    ]
