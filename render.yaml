@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: task-crm-demo
+    runtime: docker
+    plan: free
+    branch: demo
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    envVars:
+      - key: DEBUG
+        value: false

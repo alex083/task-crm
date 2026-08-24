@@ -1,16 +1,25 @@
-FROM python:3.10-slim
+# Used when Render Dockerfile Path is still backend/Dockerfile.
+# Build context must be the repository root (Root Directory empty).
+FROM node:20-alpine AS frontend
+WORKDIR /frontend
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend/ .
+RUN npm run build
 
+FROM python:3.10-slim
 WORKDIR /app
 
-# Встановлюємо системні залежності для PostgreSQL
-RUN apt-get update && apt-get install -y \
-    libpq-dev \
-    gcc \
-    && rm -rf /var/lib/apt/lists/*
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
-# Встановлюємо Python-бібліотеки
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Копіюємо решту код бекенду
-COPY . .
+COPY backend/ .
+COPY --from=frontend /frontend/dist /app/frontend_dist
+RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+
+ENV DEBUG=false
+EXPOSE 8000
+CMD ["/app/entrypoint.sh"]
