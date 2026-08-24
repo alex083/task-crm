@@ -828,6 +828,11 @@ function App() {
         element={(
           <div className="mx-auto mt-12 max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-xl font-semibold">Sign in to Task CRM</h2>
+            <p className="mb-4 rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-600">
+              Demo login: <span className="font-medium">admin</span>, <span className="font-medium">manager</span> or <span className="font-medium">employee</span>
+              <br />
+              Password: <span className="font-medium">demo1234</span>
+            </p>
             <form onSubmit={handleLogin} className="grid gap-3">
               <div>
                 <label className={labelClass}>Username</label>
