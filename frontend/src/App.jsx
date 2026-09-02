@@ -64,6 +64,13 @@ const navClass = ({ isActive }) =>
     isActive ? 'bg-sky-600' : 'bg-slate-500 hover:bg-slate-600'
   }`;
 
+function userIsSuperAdmin(user) {
+  return Boolean(
+    user &&
+    (user.role === 'super_admin' || user.is_staff || user.is_superuser)
+  );
+}
+
 function App() {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
@@ -88,7 +95,7 @@ function App() {
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
-  const isSuperAdmin = currentUser?.role === 'super_admin';
+  const isSuperAdmin = userIsSuperAdmin(currentUser);
   const isManager = currentUser?.role === 'manager';
   const canManage = isSuperAdmin || isManager;
   const isApproved = isSuperAdmin || currentUser?.status === 'approved';
@@ -113,7 +120,7 @@ function App() {
       const meRes = await getMe(token);
       setCurrentUser(meRes.data);
 
-      const approved = meRes.data.role === 'super_admin' || meRes.data.status === 'approved';
+      const approved = userIsSuperAdmin(meRes.data) || meRes.data.status === 'approved';
       if (!approved) return;
 
       const [tasksRes, deptsRes] = await Promise.all([
@@ -123,7 +130,7 @@ function App() {
       setTasks(tasksRes.data);
       setDepartments(deptsRes.data);
 
-      if (meRes.data.role === 'super_admin' || meRes.data.role === 'manager') {
+      if (userIsSuperAdmin(meRes.data) || meRes.data.role === 'manager') {
         const usersRes = await getUsers(token);
         setUsers(usersRes.data);
       }

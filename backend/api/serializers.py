@@ -77,8 +77,9 @@ class UserSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'password',
             'role', 'department', 'department_name',
             'status', 'first_name', 'last_name',
+            'is_staff', 'is_superuser',
         ]
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'is_staff', 'is_superuser']
 
     def validate(self, attrs):
         request = self.context.get('request')
