@@ -126,19 +126,19 @@ Update the values according to your environment.
 ### 3. Build and start the application
 
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 
 ### 4. Apply database migrations
 
 ```bash
-docker-compose exec web python manage.py migrate
+docker compose exec backend python manage.py migrate
 ```
 
 ### 5. Create an administrator account
 
 ```bash
-docker-compose exec web python manage.py createsuperuser
+docker compose exec backend python manage.py createsuperuser
 ```
 
 Follow the prompts to create the administrator account.
