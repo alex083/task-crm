@@ -148,7 +148,7 @@ Follow the prompts to create the administrator account.
 Once the containers are running, open:
 
 ```text
-http://127.0.0.1:8000/
+http://127.0.0.1:5173/
 ```
 
 ## Project Structure
