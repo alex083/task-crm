@@ -247,19 +247,19 @@ docker-compose up --build
 Run the Django development server inside the container:
 
 ```bash
-docker-compose exec web python manage.py runserver 0.0.0.0:8000
+docker-compose exec backend python manage.py runserver 0.0.0.0:8000
 ```
 
 Run migrations:
 
 ```bash
-docker-compose exec web python manage.py migrate
+docker-compose exec backend python manage.py migrate
 ```
 
 Create a superuser:
 
 ```bash
-docker-compose exec web python manage.py createsuperuser
+docker-compose exec backend python manage.py createsuperuser
 ```
 
 ## Future Improvements
