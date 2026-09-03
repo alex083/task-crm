@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import User, Department, Task
+from .models import User, Department, Task, TaskComment
 from .permissions import is_super_admin, is_manager
 
 
@@ -132,10 +132,26 @@ class UserSerializer(serializers.ModelSerializer):
         return instance
 
 
+class TaskCommentSerializer(serializers.ModelSerializer):
+    author_username = serializers.ReadOnlyField(source='author.username')
+
+    class Meta:
+        model = TaskComment
+        fields = ['id', 'author', 'author_username', 'text', 'created_at']
+        read_only_fields = ['author', 'created_at']
+
+    def validate_text(self, value):
+        text = (value or '').strip()
+        if not text:
+            raise serializers.ValidationError('Comment cannot be empty.')
+        return text
+
+
 class TaskSerializer(serializers.ModelSerializer):
     created_by_username = serializers.ReadOnlyField(source='created_by.username')
     assigned_to_username = serializers.ReadOnlyField(source='assigned_to.username')
     department_name = serializers.ReadOnlyField(source='department.name')
+    due_date = serializers.DateField(required=False, allow_null=True)
 
     class Meta:
         model = Task

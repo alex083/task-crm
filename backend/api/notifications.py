@@ -78,6 +78,7 @@ def notify_task_assigned(task, actor=None):
             f'You were assigned a task: {task.title}\n'
             f'Status: {task.status}\n'
             f'Priority: {task.priority}\n'
+            f'Due date: {task.due_date or "—"}\n'
             f'Department: {task.department.name if task.department else "—"}\n'
             f'Created by: {task.created_by.username if task.created_by else "—"}\n\n'
             f'Description:\n{task.description or "—"}\n'

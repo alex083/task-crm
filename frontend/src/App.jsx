@@ -9,6 +9,8 @@ import {
   createTask,
   updateTask,
   deleteTask,
+  getTaskComments,
+  createTaskComment,
   getUsers,
   createUser,
   updateUser,
@@ -45,6 +47,17 @@ const TASK_STATUS_LABELS = {
   in_progress: 'In Progress',
   done: 'Done',
 };
+
+function toDateInputValue(value) {
+  if (!value) return '';
+  return String(value).slice(0, 10);
+}
+
+function isTaskOverdue(task) {
+  const due = toDateInputValue(task?.due_date);
+  if (!due || task.status === 'done') return false;
+  return due < new Date().toISOString().slice(0, 10);
+}
 
 const fieldClass =
   'w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500';
@@ -90,6 +103,9 @@ function App() {
 
   const [createModal, setCreateModal] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentText, setCommentText] = useState('');
   const [publicDepartments, setPublicDepartments] = useState([]);
   const [signupSuccess, setSignupSuccess] = useState('');
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
@@ -145,6 +161,27 @@ function App() {
   useEffect(() => {
     if (token) loadAll();
   }, [token, loadAll]);
+
+  useEffect(() => {
+    if (!token || !selectedTask?.id) {
+      setComments([]);
+      setCommentText('');
+      return undefined;
+    }
+    let cancelled = false;
+    setCommentsLoading(true);
+    getTaskComments(token, selectedTask.id)
+      .then((res) => {
+        if (!cancelled) setComments(res.data);
+      })
+      .catch((err) => {
+        if (!cancelled) setMessage(showError(err, 'Failed to load comments'));
+      })
+      .finally(() => {
+        if (!cancelled) setCommentsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [token, selectedTask?.id]);
 
   useEffect(() => {
     if (token) return undefined;
@@ -209,6 +246,8 @@ function App() {
     setDepartments([]);
     setCreateModal(null);
     setSelectedTask(null);
+    setComments([]);
+    setCommentText('');
     setEditingTaskId(null);
     setPasswordModalOpen(false);
     setSuccessMessage('');
@@ -242,6 +281,7 @@ function App() {
       description: form.description.value,
       priority: form.priority.value,
       status: form.status.value,
+      due_date: form.due_date.value || null,
     };
     if (isSuperAdmin && form.department.value) {
       data.department = Number(form.department.value);
@@ -264,6 +304,7 @@ function App() {
       description: form.description.value,
       priority: form.priority.value,
       status: form.status.value,
+      due_date: form.due_date.value || null,
     };
     if (isSuperAdmin && form.department.value) {
       data.department = Number(form.department.value);
@@ -277,6 +318,18 @@ function App() {
       loadAll();
     } catch (err) {
       setMessage(showError(err, 'Failed to update task'));
+    }
+  };
+
+  const handleCreateComment = async (e) => {
+    e.preventDefault();
+    if (!selectedTask || !commentText.trim()) return;
+    try {
+      const res = await createTaskComment(token, selectedTask.id, commentText.trim());
+      setComments((prev) => [...prev, res.data]);
+      setCommentText('');
+    } catch (err) {
+      setMessage(showError(err, 'Failed to add comment'));
     }
   };
 
@@ -405,6 +458,15 @@ function App() {
           <option key={v} value={v}>{l}</option>
         ))}
       </select>
+
+      <label className={labelClass}>Due date</label>
+      <input
+        name="due_date"
+        type="date"
+        defaultValue={toDateInputValue(task?.due_date)}
+        className={fieldClass}
+      />
+      
       {isSuperAdmin && (
         <select name="department" defaultValue={task?.department || ''} className={fieldClass}>
           <option value="">— Department —</option>
@@ -649,12 +711,64 @@ function App() {
                     ? new Date(selectedTask.created_at).toLocaleString()
                     : '—'}
                 </div>
+                <div>
+                  <span className="font-semibold">Due date:</span>{' '}
+                  {toDateInputValue(selectedTask.due_date) || '—'}
+                  {isTaskOverdue(selectedTask) && (
+                    <span className="ml-2 font-semibold text-rose-600">Overdue</span>
+                  )}
+                </div>
               </div>
               <div>
                 <strong className="mb-2 block text-sm">Description</strong>
                 <p className="min-h-[60px] whitespace-pre-wrap rounded-lg bg-slate-50 p-3 text-sm leading-relaxed text-slate-700">
                   {selectedTask.description?.trim() ? selectedTask.description : 'No description'}
                 </p>
+              </div>
+              <div>
+                <strong className="mb-2 block text-sm">
+                  Comments <span className="font-normal text-slate-400">({comments.length})</span>
+                </strong>
+                <div className="max-h-56 space-y-2 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  {commentsLoading && (
+                    <p className="text-sm text-slate-500">Loading comments...</p>
+                  )}
+                  {!commentsLoading && comments.length === 0 && (
+                    <p className="text-sm text-slate-400">No comments yet</p>
+                  )}
+                  {comments.map((comment) => (
+                    <div key={comment.id} className="rounded-md bg-white p-2 shadow-sm">
+                      <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2 text-xs text-slate-500">
+                        <span className="font-medium text-slate-700">
+                          {comment.author_username || 'Unknown'}
+                        </span>
+                        <span>
+                          {comment.created_at
+                            ? new Date(comment.created_at).toLocaleString()
+                            : ''}
+                        </span>
+                      </div>
+                      <p className="whitespace-pre-wrap text-sm text-slate-700">{comment.text}</p>
+                    </div>
+                  ))}
+                </div>
+                <form onSubmit={handleCreateComment} className="mt-2 grid gap-2">
+                  <textarea
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder="Write a comment"
+                    className={`${fieldClass} min-h-[72px]`}
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      type="submit"
+                      className={btnPrimary}
+                      disabled={!commentText.trim()}
+                    >
+                      Add comment
+                    </button>
+                  </div>
+                </form>
               </div>
               {canManage && (
                 <div className="flex justify-end gap-2">

@@ -32,6 +32,20 @@ export function deleteTask(token, id) {
   return axios.delete(`${API_URL}/tasks/${id}/`, { headers: authHeaders(token) });
 }
 
+export function getTaskComments(token, taskId) {
+  return axios.get(`${API_URL}/tasks/${taskId}/comments/`, {
+    headers: authHeaders(token),
+  });
+}
+
+export function createTaskComment(token, taskId, text) {
+  return axios.post(
+    `${API_URL}/tasks/${taskId}/comments/`,
+    { text },
+    { headers: authHeaders(token) },
+  );
+}
+
 export function getUsers(token) {
   return axios.get(`${API_URL}/users/`, { headers: authHeaders(token) });
 }

@@ -19,7 +19,7 @@ function Modal({ open, title, onClose, children, wide = false }) {
       role="presentation"
     >
       <div
-        className={`max-h-[90vh] w-full overflow-y-auto rounded-xl bg-white p-5 shadow-2xl ${wide ? 'max-w-xl' : 'max-w-md'}`}
+        className={`max-h-[90vh] w-full overflow-y-auto rounded-xl bg-white p-5 shadow-2xl ${wide ? 'max-w-2xl' : 'max-w-md'}`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"

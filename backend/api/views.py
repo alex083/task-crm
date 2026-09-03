@@ -1,5 +1,6 @@
 from django.db.models import Q
 from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -9,6 +10,7 @@ from .serializers import (
     ChangePasswordSerializer,
     DepartmentSerializer,
     RegisterSerializer,
+    TaskCommentSerializer,
     UserSerializer,
     TaskSerializer,
 )
@@ -148,3 +150,15 @@ class TaskViewSet(viewsets.ModelViewSet):
         context = super().get_serializer_context()
         context['request'] = self.request
         return context
+
+    @action(detail=True, methods=['get', 'post'])
+    def comments(self, request, pk=None):
+        task = self.get_object()
+        if request.method == 'GET':
+            comments = task.comments.select_related('author')
+            return Response(TaskCommentSerializer(comments, many=True).data)
+
+        serializer = TaskCommentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(author=request.user, task=task)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
