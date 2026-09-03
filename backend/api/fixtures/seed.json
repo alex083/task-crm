@@ -1,0 +1,395 @@
+[
+{
+  "model": "api.department",
+  "pk": 2,
+  "fields": {
+    "name": "Sales Department"
+  }
+},
+{
+  "model": "api.department",
+  "pk": 3,
+  "fields": {
+    "name": "Marketing Department"
+  }
+},
+{
+  "model": "api.department",
+  "pk": 4,
+  "fields": {
+    "name": "Accounts Department"
+  }
+},
+{
+  "model": "api.department",
+  "pk": 5,
+  "fields": {
+    "name": "Information Technology (IT) Department"
+  }
+},
+{
+  "model": "api.department",
+  "pk": 6,
+  "fields": {
+    "name": "Customer Service"
+  }
+},
+{
+  "model": "api.department",
+  "pk": 7,
+  "fields": {
+    "name": "Operations Department"
+  }
+},
+{
+  "model": "api.department",
+  "pk": 8,
+  "fields": {
+    "name": "Legal Department"
+  }
+},
+{
+  "model": "api.department",
+  "pk": 9,
+  "fields": {
+    "name": "Research and Development (R&D)"
+  }
+},
+{
+  "model": "api.department",
+  "pk": 10,
+  "fields": {
+    "name": "Corporate Communications"
+  }
+},
+{
+  "model": "api.user",
+  "pk": 101,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$zDevXm8wF7NpcJanVdnsy0$XgLA6IeRVbEkcI8I0dS9rgEVnTwZm0FgmQHiBYQFkJ4=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "anna_sales",
+    "first_name": "Anna",
+    "last_name": "Kowalska",
+    "email": "anna.sales@taskcrm.local",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-01T09:00:00Z",
+    "role": "manager",
+    "status": "approved",
+    "department": 2,
+    "position": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "api.user",
+  "pk": 102,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$zDevXm8wF7NpcJanVdnsy0$XgLA6IeRVbEkcI8I0dS9rgEVnTwZm0FgmQHiBYQFkJ4=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "mark_mkt",
+    "first_name": "Mark",
+    "last_name": "Chen",
+    "email": "mark.mkt@taskcrm.local",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-01T09:05:00Z",
+    "role": "manager",
+    "status": "approved",
+    "department": 3,
+    "position": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "api.user",
+  "pk": 103,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$zDevXm8wF7NpcJanVdnsy0$XgLA6IeRVbEkcI8I0dS9rgEVnTwZm0FgmQHiBYQFkJ4=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "ivan_it",
+    "first_name": "Ivan",
+    "last_name": "Petrov",
+    "email": "ivan.it@taskcrm.local",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-01T09:10:00Z",
+    "role": "manager",
+    "status": "approved",
+    "department": 5,
+    "position": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "api.user",
+  "pk": 104,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$zDevXm8wF7NpcJanVdnsy0$XgLA6IeRVbEkcI8I0dS9rgEVnTwZm0FgmQHiBYQFkJ4=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "sara_ops",
+    "first_name": "Sara",
+    "last_name": "Nielsen",
+    "email": "sara.ops@taskcrm.local",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-01T09:15:00Z",
+    "role": "manager",
+    "status": "approved",
+    "department": 7,
+    "position": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "api.user",
+  "pk": 105,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$zDevXm8wF7NpcJanVdnsy0$XgLA6IeRVbEkcI8I0dS9rgEVnTwZm0FgmQHiBYQFkJ4=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "lina_cs",
+    "first_name": "Lina",
+    "last_name": "Rossi",
+    "email": "lina.cs@taskcrm.local",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-01T09:20:00Z",
+    "role": "manager",
+    "status": "approved",
+    "department": 6,
+    "position": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "api.user",
+  "pk": 106,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$zDevXm8wF7NpcJanVdnsy0$XgLA6IeRVbEkcI8I0dS9rgEVnTwZm0FgmQHiBYQFkJ4=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "tom_sales",
+    "first_name": "Tom",
+    "last_name": "Baker",
+    "email": "tom.sales@taskcrm.local",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-01T10:00:00Z",
+    "role": "employee",
+    "status": "approved",
+    "department": 2,
+    "position": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "api.user",
+  "pk": 107,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$zDevXm8wF7NpcJanVdnsy0$XgLA6IeRVbEkcI8I0dS9rgEVnTwZm0FgmQHiBYQFkJ4=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "julia_mkt",
+    "first_name": "Julia",
+    "last_name": "Novak",
+    "email": "julia.mkt@taskcrm.local",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-01T10:05:00Z",
+    "role": "employee",
+    "status": "approved",
+    "department": 3,
+    "position": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "api.user",
+  "pk": 108,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$zDevXm8wF7NpcJanVdnsy0$XgLA6IeRVbEkcI8I0dS9rgEVnTwZm0FgmQHiBYQFkJ4=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "peter_acc",
+    "first_name": "Peter",
+    "last_name": "Walsh",
+    "email": "peter.acc@taskcrm.local",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-01T10:10:00Z",
+    "role": "employee",
+    "status": "approved",
+    "department": 4,
+    "position": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "api.user",
+  "pk": 109,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$zDevXm8wF7NpcJanVdnsy0$XgLA6IeRVbEkcI8I0dS9rgEVnTwZm0FgmQHiBYQFkJ4=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "nina_it",
+    "first_name": "Nina",
+    "last_name": "Cole",
+    "email": "nina.it@taskcrm.local",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-01T10:15:00Z",
+    "role": "employee",
+    "status": "approved",
+    "department": 5,
+    "position": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "api.user",
+  "pk": 110,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$zDevXm8wF7NpcJanVdnsy0$XgLA6IeRVbEkcI8I0dS9rgEVnTwZm0FgmQHiBYQFkJ4=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "alex_it",
+    "first_name": "Alex",
+    "last_name": "Brooks",
+    "email": "alex.it@taskcrm.local",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-01T10:20:00Z",
+    "role": "employee",
+    "status": "approved",
+    "department": 5,
+    "position": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "api.user",
+  "pk": 111,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$zDevXm8wF7NpcJanVdnsy0$XgLA6IeRVbEkcI8I0dS9rgEVnTwZm0FgmQHiBYQFkJ4=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "emma_cs",
+    "first_name": "Emma",
+    "last_name": "Diaz",
+    "email": "emma.cs@taskcrm.local",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-01T10:25:00Z",
+    "role": "employee",
+    "status": "approved",
+    "department": 6,
+    "position": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "api.user",
+  "pk": 112,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$zDevXm8wF7NpcJanVdnsy0$XgLA6IeRVbEkcI8I0dS9rgEVnTwZm0FgmQHiBYQFkJ4=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "oleg_ops",
+    "first_name": "Oleg",
+    "last_name": "Kravets",
+    "email": "oleg.ops@taskcrm.local",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-01T10:30:00Z",
+    "role": "employee",
+    "status": "approved",
+    "department": 7,
+    "position": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "api.user",
+  "pk": 113,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$zDevXm8wF7NpcJanVdnsy0$XgLA6IeRVbEkcI8I0dS9rgEVnTwZm0FgmQHiBYQFkJ4=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "kate_legal",
+    "first_name": "Kate",
+    "last_name": "Moore",
+    "email": "kate.legal@taskcrm.local",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-01T10:35:00Z",
+    "role": "employee",
+    "status": "approved",
+    "department": 8,
+    "position": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "api.user",
+  "pk": 114,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$zDevXm8wF7NpcJanVdnsy0$XgLA6IeRVbEkcI8I0dS9rgEVnTwZm0FgmQHiBYQFkJ4=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "dan_rnd",
+    "first_name": "Dan",
+    "last_name": "Fischer",
+    "email": "dan.rnd@taskcrm.local",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-01T10:40:00Z",
+    "role": "employee",
+    "status": "approved",
+    "department": 9,
+    "position": null,
+    "groups": [],
+    "user_permissions": []
+  }
+},
+{
+  "model": "api.user",
+  "pk": 115,
+  "fields": {
+    "password": "pbkdf2_sha256$600000$zDevXm8wF7NpcJanVdnsy0$XgLA6IeRVbEkcI8I0dS9rgEVnTwZm0FgmQHiBYQFkJ4=",
+    "last_login": null,
+    "is_superuser": false,
+    "username": "mia_comms",
+    "first_name": "Mia",
+    "last_name": "Patel",
+    "email": "mia.comms@taskcrm.local",
+    "is_staff": false,
+    "is_active": true,
+    "date_joined": "2026-09-01T10:45:00Z",
+    "role": "employee",
+    "status": "approved",
+    "department": 10,
+    "position": null,
+    "groups": [],
+    "user_permissions": []
+  }
+}
+]
