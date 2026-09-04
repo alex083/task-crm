@@ -1,6 +1,5 @@
-from django.contrib.auth.models import AbstractUser, UserManager
+from django.contrib.auth.models import AbstractUser
 from django.db import models
-
 
 
 class Department(models.Model):
@@ -23,7 +22,7 @@ class User(AbstractUser):
         ('manager', 'Manager'),
         ('employee', 'Employee'),
     )
-    
+
     STATUS_CHOICES = (
         ('pending', 'Pending'),
         ('approved', 'Approved'),
@@ -36,6 +35,7 @@ class User(AbstractUser):
 
     def __str__(self):
         return f"{self.username} ({self.role})"
+
 
 class Task(models.Model):
     PRIORITY_CHOICES = (
@@ -53,11 +53,11 @@ class Task(models.Model):
     description = models.TextField(blank=True, verbose_name="Description")
     priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='medium')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='todo')
-    
+
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Task department")
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_tasks', verbose_name="Created by")
     assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_tasks', verbose_name="Assignee")
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     due_date = models.DateField(null=True, blank=True, verbose_name="Due date")
 
