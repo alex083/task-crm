@@ -27,7 +27,8 @@ def notify_registration(user):
                 f'Hello {user.first_name or user.username},\n\n'
                 'Your account was created and is waiting for approval.\n'
                 f'Login: {user.username}\n'
-                f'Department: {user.department.name if user.department else "—"}\n\n'
+                f'Department: {user.department.name if user.department else "—"}\n'
+                f'Job title: {user.position.name if user.position else "—"}\n\n'
                 'You will get access after a manager or super admin approves you.'
             ),
             recipients=[user.email],
@@ -46,6 +47,7 @@ def notify_registration(user):
             f'Email: {user.email or "—"}\n'
             f'Name: {user.first_name} {user.last_name}\n'
             f'Department: {user.department.name if user.department else "—"}\n'
+            f'Job title: {user.position.name if user.position else "—"}\n'
         ),
         recipients=[u.email for u in reviewers],
     )

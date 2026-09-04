@@ -1,12 +1,18 @@
 from rest_framework import serializers
 
-from .models import User, Department, Task, TaskComment
+from .models import User, Department, Position, Task, TaskComment
 from .permissions import is_super_admin, is_manager
 
 
 class DepartmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Department
+        fields = ['id', 'name']
+
+
+class PositionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Position
         fields = ['id', 'name']
 
 
@@ -44,12 +50,17 @@ class RegisterSerializer(serializers.ModelSerializer):
         queryset=Department.objects.all(),
         required=True,
     )
+    position = serializers.PrimaryKeyRelatedField(
+        queryset=Position.objects.all(),
+        required=False,
+        allow_null=True,
+    )
 
     class Meta:
         model = User
         fields = [
             'username', 'email', 'password',
-            'first_name', 'last_name', 'department',
+            'first_name', 'last_name', 'department', 'position',
         ]
 
     def validate_email(self, value):
@@ -69,6 +80,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     department_name = serializers.ReadOnlyField(source='department.name')
+    position_name = serializers.ReadOnlyField(source='position.name')
     password = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
@@ -76,6 +88,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'username', 'email', 'password',
             'role', 'department', 'department_name',
+            'position', 'position_name',
             'status', 'first_name', 'last_name',
             'is_staff', 'is_superuser',
         ]

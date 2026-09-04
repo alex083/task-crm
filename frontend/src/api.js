@@ -78,6 +78,22 @@ export function deleteDepartment(token, id) {
   return axios.delete(`${API_URL}/departments/${id}/`, { headers: authHeaders(token) });
 }
 
+export function getPositions(token) {
+  return axios.get(`${API_URL}/positions/`, { headers: authHeaders(token) });
+}
+
+export function createPosition(token, data) {
+  return axios.post(`${API_URL}/positions/`, data, { headers: authHeaders(token) });
+}
+
+export function updatePosition(token, id, data) {
+  return axios.patch(`${API_URL}/positions/${id}/`, data, { headers: authHeaders(token) });
+}
+
+export function deletePosition(token, id) {
+  return axios.delete(`${API_URL}/positions/${id}/`, { headers: authHeaders(token) });
+}
+
 export function login(username, password) {
   return axios.post(`${API_URL}/token/`, { username, password });
 }
@@ -88,4 +104,8 @@ export function register(data) {
 
 export function getPublicDepartments() {
   return axios.get(`${API_URL}/public/departments/`);
+}
+
+export function getPublicPositions() {
+  return axios.get(`${API_URL}/public/positions/`);
 }

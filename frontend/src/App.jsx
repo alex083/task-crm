@@ -17,9 +17,14 @@ import {
   deleteUser,
   getDepartments,
   getPublicDepartments,
+  getPublicPositions,
   createDepartment,
   updateDepartment,
   deleteDepartment,
+  getPositions,
+  createPosition,
+  updatePosition,
+  deletePosition,
 } from './api';
 import Modal from './components/Modal';
 import KanbanBoard from './components/KanbanBoard';
@@ -96,10 +101,12 @@ function App() {
   const [tasks, setTasks] = useState([]);
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [positions, setPositions] = useState([]);
 
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [editingUserId, setEditingUserId] = useState(null);
   const [editingDeptId, setEditingDeptId] = useState(null);
+  const [editingPositionId, setEditingPositionId] = useState(null);
 
   const [createModal, setCreateModal] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -107,6 +114,7 @@ function App() {
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [publicDepartments, setPublicDepartments] = useState([]);
+  const [publicPositions, setPublicPositions] = useState([]);
   const [signupSuccess, setSignupSuccess] = useState('');
   const [passwordModalOpen, setPasswordModalOpen] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
@@ -139,12 +147,14 @@ function App() {
       const approved = userIsSuperAdmin(meRes.data) || meRes.data.status === 'approved';
       if (!approved) return;
 
-      const [tasksRes, deptsRes] = await Promise.all([
+      const [tasksRes, deptsRes, positionsRes] = await Promise.all([
         getTasks(token),
         getDepartments(token),
+        getPositions(token),
       ]);
       setTasks(tasksRes.data);
       setDepartments(deptsRes.data);
+      setPositions(positionsRes.data);
 
       if (userIsSuperAdmin(meRes.data) || meRes.data.role === 'manager') {
         const usersRes = await getUsers(token);
@@ -193,6 +203,13 @@ function App() {
       .catch(() => {
         if (!cancelled) setPublicDepartments([]);
       });
+    getPublicPositions()
+      .then((res) => {
+        if (!cancelled) setPublicPositions(res.data);
+      })
+      .catch(() => {
+        if (!cancelled) setPublicPositions([]);
+      });
     return () => { cancelled = true; };
   }, [token]);
 
@@ -224,6 +241,7 @@ function App() {
       first_name: form.first_name.value.trim(),
       last_name: form.last_name.value.trim(),
       department: Number(form.department.value),
+      position: form.position.value ? Number(form.position.value) : null,
     };
     try {
       await register(data);
@@ -244,6 +262,7 @@ function App() {
     setTasks([]);
     setUsers([]);
     setDepartments([]);
+    setPositions([]);
     setCreateModal(null);
     setSelectedTask(null);
     setComments([]);
@@ -358,6 +377,11 @@ function App() {
     if (isSuperAdmin && form.department.value) {
       data.department = Number(form.department.value);
     }
+    if (form.position?.value) {
+      data.position = Number(form.position.value);
+    } else {
+      data.position = null;
+    }
     try {
       await createUser(token, data);
       setCreateModal(null);
@@ -378,6 +402,7 @@ function App() {
     if (isSuperAdmin && form.department.value) {
       data.department = Number(form.department.value);
     }
+    data.position = form.position?.value ? Number(form.position.value) : null;
     if (form.password.value) {
       data.password = form.password.value;
     }
@@ -409,6 +434,28 @@ function App() {
       loadAll();
     } catch (err) {
       setMessage(showError(err, 'Failed to update department'));
+    }
+  };
+
+  const handleCreatePosition = async (e) => {
+    e.preventDefault();
+    const name = e.target.name.value;
+    try {
+      await createPosition(token, { name });
+      setCreateModal(null);
+      loadAll();
+    } catch (err) {
+      setMessage(showError(err, 'Failed to create job title'));
+    }
+  };
+
+  const handleUpdatePosition = async (positionId, name) => {
+    try {
+      await updatePosition(token, positionId, { name });
+      setEditingPositionId(null);
+      loadAll();
+    } catch (err) {
+      setMessage(showError(err, 'Failed to update job title'));
     }
   };
 
@@ -509,6 +556,7 @@ function App() {
               <h1 className="text-2xl font-bold text-slate-900">Task CRM</h1>
               <p className="text-sm text-slate-500">
                 {currentUser.username} — {ROLE_LABELS[currentUser.role]}
+                {currentUser.position_name ? ` · ${currentUser.position_name}` : ''}
                 {currentUser.department_name ? ` (${currentUser.department_name})` : ''}
               </p>
             </div>
@@ -538,6 +586,7 @@ function App() {
             <NavLink to="/tasks" className={navClass}>Board</NavLink>
             {canManage && <NavLink to="/employees" className={navClass}>Employees</NavLink>}
             {canManage && <NavLink to="/departments" className={navClass}>Departments</NavLink>}
+            {canManage && <NavLink to="/positions" className={navClass}>Job titles</NavLink>}
           </nav>
         </div>
 
@@ -603,6 +652,12 @@ function App() {
                                 ))}
                               </select>
                             )}
+                            <select name="position" defaultValue={user.position || ''} className={fieldClass}>
+                              <option value="">— No job title —</option>
+                              {positions.map((p) => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                              ))}
+                            </select>
                             <div className="flex gap-2">
                               <button type="submit" className={btnPrimary}>Save</button>
                               <button type="button" onClick={() => setEditingUserId(null)} className={btnMuted}>Cancel</button>
@@ -617,6 +672,9 @@ function App() {
                               </span>
                               {user.department_name && (
                                 <span className="text-sm text-slate-500">[{user.department_name}]</span>
+                              )}
+                              {user.position_name && (
+                                <span className="text-sm text-slate-500">{user.position_name}</span>
                               )}
                             </div>
                             <div className="mt-3 flex gap-2">
@@ -681,6 +739,56 @@ function App() {
                   {isManager && !isSuperAdmin && (
                     <p className="mt-3 text-sm text-slate-500">
                       As a manager, you can only see your own department. Creating and editing departments is available to super admin.
+                    </p>
+                  )}
+                </div>
+              ) : <Navigate to="/tasks" replace />}
+            />
+
+            <Route
+              path="/positions"
+              element={canManage ? (
+                <div>
+                  {pageHeader('Job titles', positions.length, 'Create job title', 'position', isSuperAdmin)}
+                  <div className="space-y-3">
+                    {positions.length === 0 ? (
+                      <p className="text-slate-500">No job titles</p>
+                    ) : positions.map((position) => (
+                      <div key={position.id} className={cardClass}>
+                        {editingPositionId === position.id && isSuperAdmin ? (
+                          <form
+                            onSubmit={(e) => {
+                              e.preventDefault();
+                              handleUpdatePosition(position.id, e.target.name.value);
+                            }}
+                            className="flex flex-wrap gap-2"
+                          >
+                            <input name="name" defaultValue={position.name} className={`${fieldClass} flex-1`} required />
+                            <button type="submit" className={btnPrimary}>Save</button>
+                            <button type="button" onClick={() => setEditingPositionId(null)} className={btnMuted}>Cancel</button>
+                          </form>
+                        ) : (
+                          <div className="flex items-center justify-between gap-3">
+                            <strong>{position.name}</strong>
+                            {isSuperAdmin && (
+                              <div className="flex gap-2">
+                                <button onClick={() => setEditingPositionId(position.id)} className={btnPrimary}>Edit</button>
+                                <button
+                                  onClick={() => deletePosition(token, position.id).then(loadAll)}
+                                  className={btnDanger}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {isManager && !isSuperAdmin && (
+                    <p className="mt-3 text-sm text-slate-500">
+                      Creating and editing job titles is available to super admin. You can assign them to employees.
                     </p>
                   )}
                 </div>
@@ -870,6 +978,12 @@ function App() {
                 ))}
               </select>
             )}
+            <select name="position" className={fieldClass} defaultValue="">
+              <option value="">— Job title —</option>
+              {positions.map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setCreateModal(null)} className={btnMuted}>Cancel</button>
               <button type="submit" className={btnSuccess}>Create</button>
@@ -880,6 +994,16 @@ function App() {
         <Modal open={createModal === 'department'} title="Create department" onClose={() => setCreateModal(null)}>
           <form onSubmit={handleCreateDepartment} className="grid gap-3">
             <input name="name" placeholder="Department name" className={fieldClass} required />
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setCreateModal(null)} className={btnMuted}>Cancel</button>
+              <button type="submit" className={btnSuccess}>Create</button>
+            </div>
+          </form>
+        </Modal>
+
+        <Modal open={createModal === 'position'} title="Create job title" onClose={() => setCreateModal(null)}>
+          <form onSubmit={handleCreatePosition} className="grid gap-3">
+            <input name="name" placeholder="Job title" className={fieldClass} required />
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setCreateModal(null)} className={btnMuted}>Cancel</button>
               <button type="submit" className={btnSuccess}>Create</button>
@@ -927,6 +1051,15 @@ function App() {
                   <option value="" disabled>— Select department —</option>
                   {publicDepartments.map((d) => (
                     <option key={d.id} value={d.id}>{d.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className={labelClass}>Job title</label>
+                <select name="position" className={fieldClass} defaultValue="">
+                  <option value="">— Select job title —</option>
+                  {publicPositions.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
               </div>

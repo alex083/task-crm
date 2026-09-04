@@ -5,10 +5,11 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Department, User, Task
+from .models import Department, Position, User, Task
 from .serializers import (
     ChangePasswordSerializer,
     DepartmentSerializer,
+    PositionSerializer,
     RegisterSerializer,
     TaskCommentSerializer,
     UserSerializer,
@@ -75,6 +76,14 @@ class PublicDepartmentListView(APIView):
         return Response(DepartmentSerializer(departments, many=True).data)
 
 
+class PublicPositionListView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        positions = Position.objects.all().order_by('name')
+        return Response(PositionSerializer(positions, many=True).data)
+
+
 class DepartmentViewSet(viewsets.ModelViewSet):
     serializer_class = DepartmentSerializer
 
@@ -92,13 +101,25 @@ class DepartmentViewSet(viewsets.ModelViewSet):
         return Department.objects.none()
 
 
+class PositionViewSet(viewsets.ModelViewSet):
+    serializer_class = PositionSerializer
+
+    def get_permissions(self):
+        if self.action in ('create', 'update', 'partial_update', 'destroy'):
+            return [IsSuperAdmin()]
+        return [IsApprovedUser()]
+
+    def get_queryset(self):
+        return Position.objects.all().order_by('name')
+
+
 class UserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [IsManagerOrSuperAdmin]
 
     def get_queryset(self):
         user = self.request.user
-        qs = User.objects.select_related('department')
+        qs = User.objects.select_related('department', 'position')
         if is_super_admin(user):
             return qs.all()
         if is_manager(user) and user.department_id:

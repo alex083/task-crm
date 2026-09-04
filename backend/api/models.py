@@ -9,6 +9,14 @@ class Department(models.Model):
     def __str__(self):
         return self.name
 
+
+class Position(models.Model):
+    name = models.CharField(max_length=100, unique=True, verbose_name="Job title")
+
+    def __str__(self):
+        return self.name
+
+
 class User(AbstractUser):
     ROLE_CHOICES = (
         ('super_admin', 'Super Admin'),
@@ -23,6 +31,7 @@ class User(AbstractUser):
     )
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='employee')
     department = models.ForeignKey(Department, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Department")
+    position = models.ForeignKey(Position, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Job title")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
 
     def __str__(self):
