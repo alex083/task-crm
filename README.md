@@ -113,7 +113,7 @@ git clone https://github.com/alex083/task-crm.git
 cd task-crm
 ```
 
-### 2. Configure environment variables
+### 2. Configure environment variables (skip if docker compose is used)
 
 Create a `.env` file in the project root and configure the required environment variables.
 
