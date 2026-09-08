@@ -218,18 +218,18 @@ function App() {
     if (!token) return;
     setLoading(true);
     try {
-      const meRes = await getMe(token);
+      const meRes = await getMe();
       setCurrentUser(meRes.data);
 
       const approved = userIsSuperAdmin(meRes.data) || meRes.data.status === 'approved';
       if (!approved) return;
 
       const [tasksRes, deptsRes, positionsRes, messagesRes, colleaguesRes] = await Promise.all([
-        getTasks(token),
-        getDepartments(token),
-        getPositions(token),
-        getMessages(token),
-        getColleagues(token),
+        getTasks(),
+        getDepartments(),
+        getPositions(),
+        getMessages(),
+        getColleagues(),
       ]);
       setTasks(tasksRes.data);
       setDepartments(deptsRes.data);
@@ -238,12 +238,15 @@ function App() {
       setColleagues(colleaguesRes.data);
 
       if (userIsSuperAdmin(meRes.data) || meRes.data.role === 'manager') {
-        const usersRes = await getUsers(token);
+        const usersRes = await getUsers();
         setUsers(usersRes.data);
       }
     } catch (err) {
-      if (err.response?.status === 401) handleLogout();
-      else setMessage(showError(err, 'Failed to load data'));
+      if (err.response?.status === 401 || !localStorage.getItem('access_token')) {
+        handleLogout();
+      } else {
+        setMessage(showError(err, 'Failed to load data'));
+      }
     } finally {
       setLoading(false);
     }
@@ -261,7 +264,7 @@ function App() {
     }
     let cancelled = false;
     setCommentsLoading(true);
-    getTaskComments(token, selectedTask.id)
+    getTaskComments(selectedTask.id)
       .then((res) => {
         if (!cancelled) setComments(res.data);
       })
@@ -361,7 +364,7 @@ function App() {
     e.preventDefault();
     const form = e.target;
     try {
-      await changePassword(token, {
+      await changePassword({
         current_password: form.current_password.value,
         new_password: form.new_password.value,
         confirm_password: form.confirm_password.value,
@@ -393,7 +396,7 @@ function App() {
       data.assigned_to = Number(form.assigned_to.value);
     }
     try {
-      await createTask(token, data);
+      await createTask(data);
       setCreateModal(null);
       loadAll();
     } catch (err) {
@@ -416,7 +419,7 @@ function App() {
       data.assigned_to = form.assigned_to.value ? Number(form.assigned_to.value) : null;
     }
     try {
-      await updateTask(token, taskId, data);
+      await updateTask(taskId, data);
       setEditingTaskId(null);
       loadAll();
     } catch (err) {
@@ -428,7 +431,7 @@ function App() {
     e.preventDefault();
     if (!selectedTask || !commentText.trim()) return;
     try {
-      const res = await createTaskComment(token, selectedTask.id, commentText.trim());
+      const res = await createTaskComment(selectedTask.id, commentText.trim());
       setComments((prev) => [...prev, res.data]);
       setCommentText('');
     } catch (err) {
@@ -439,7 +442,7 @@ function App() {
   const handleTaskStatusChange = async (task, status) => {
     if (task.status === status) return;
     try {
-      await updateTask(token, task.id, { status });
+      await updateTask(task.id, { status });
       loadAll();
     } catch (err) {
       setMessage(showError(err, 'Failed to update task status'));
@@ -467,7 +470,7 @@ function App() {
       data.position = null;
     }
     try {
-      await createUser(token, data);
+      await createUser(data);
       setCreateModal(null);
       loadAll();
     } catch (err) {
@@ -491,7 +494,7 @@ function App() {
       data.password = form.password.value;
     }
     try {
-      await updateUser(token, userId, data);
+      await updateUser(userId, data);
       setEditingUserId(null);
       loadAll();
     } catch (err) {
@@ -503,7 +506,7 @@ function App() {
     e.preventDefault();
     const name = e.target.name.value;
     try {
-      await createDepartment(token, { name });
+      await createDepartment({ name });
       setCreateModal(null);
       loadAll();
     } catch (err) {
@@ -513,7 +516,7 @@ function App() {
 
   const handleUpdateDepartment = async (deptId, name) => {
     try {
-      await updateDepartment(token, deptId, { name });
+      await updateDepartment(deptId, { name });
       setEditingDeptId(null);
       loadAll();
     } catch (err) {
@@ -525,7 +528,7 @@ function App() {
     e.preventDefault();
     const name = e.target.name.value;
     try {
-      await createPosition(token, { name });
+      await createPosition({ name });
       setCreateModal(null);
       loadAll();
     } catch (err) {
@@ -535,7 +538,7 @@ function App() {
 
   const handleUpdatePosition = async (positionId, name) => {
     try {
-      await updatePosition(token, positionId, { name });
+      await updatePosition(positionId, { name });
       setEditingPositionId(null);
       loadAll();
     } catch (err) {
@@ -561,7 +564,7 @@ function App() {
       data.recipient_position = Number(form.recipient_position.value);
     }
     try {
-      await createMessage(token, data);
+      await createMessage(data);
       setCreateModal(null);
       setMessageRecipientType('user');
       loadAll();
@@ -575,7 +578,7 @@ function App() {
     const isInbox = msg.sender !== currentUser.id;
     if (!isInbox || msg.is_read) return;
     try {
-      const res = await markMessageRead(token, msg.id);
+      const res = await markMessageRead(msg.id);
       setMessages((prev) => prev.map((item) => (item.id === msg.id ? res.data : item)));
       setSelectedMessage(res.data);
     } catch (err) {
@@ -766,7 +769,7 @@ function App() {
                       setSelectedTask(null);
                       setEditingTaskId(id);
                     }}
-                    onDeleteTask={(id) => deleteTask(token, id).then(loadAll)}
+                    onDeleteTask={(id) => deleteTask(id).then(loadAll)}
                     onStatusChange={handleTaskStatusChange}
                   />
                 </div>
@@ -895,7 +898,7 @@ function App() {
                               <button onClick={() => setEditingUserId(user.id)} className={btnPrimary}>Edit</button>
                               {user.id !== currentUser.id && (
                                 <button
-                                  onClick={() => deleteUser(token, user.id).then(loadAll)}
+                                  onClick={() => deleteUser(user.id).then(loadAll)}
                                   className={btnDanger}
                                 >
                                   Delete
@@ -938,7 +941,7 @@ function App() {
                               <div className="flex gap-2">
                                 <button onClick={() => setEditingDeptId(dept.id)} className={btnPrimary}>Edit</button>
                                 <button
-                                  onClick={() => deleteDepartment(token, dept.id).then(loadAll)}
+                                  onClick={() => deleteDepartment(dept.id).then(loadAll)}
                                   className={btnDanger}
                                 >
                                   Delete
@@ -988,7 +991,7 @@ function App() {
                               <div className="flex gap-2">
                                 <button onClick={() => setEditingPositionId(position.id)} className={btnPrimary}>Edit</button>
                                 <button
-                                  onClick={() => deletePosition(token, position.id).then(loadAll)}
+                                  onClick={() => deletePosition(position.id).then(loadAll)}
                                   className={btnDanger}
                                 >
                                   Delete
@@ -1107,7 +1110,7 @@ function App() {
                   <button
                     type="button"
                     onClick={() => {
-                      deleteTask(token, selectedTask.id).then(() => {
+                      deleteTask(selectedTask.id).then(() => {
                         setSelectedTask(null);
                         loadAll();
                       });
