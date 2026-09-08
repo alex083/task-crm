@@ -1,14 +1,17 @@
 from django.db.models import Q
+from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Department, Position, User, Task
+from .models import Department, Position, User, Task, InternalMessage
 from .serializers import (
     ChangePasswordSerializer,
+    ColleagueSerializer,
     DepartmentSerializer,
+    InternalMessageSerializer,
     PositionSerializer,
     RegisterSerializer,
     TaskCommentSerializer,
@@ -82,6 +85,19 @@ class PublicPositionListView(APIView):
     def get(self, request):
         positions = Position.objects.all().order_by('name')
         return Response(PositionSerializer(positions, many=True).data)
+
+
+class ColleagueListView(APIView):
+    permission_classes = [IsApprovedUser]
+
+    def get(self, request):
+        colleagues = (
+            User.objects.filter(is_active=True, status='approved')
+            .exclude(pk=request.user.pk)
+            .select_related('department')
+            .order_by('username')
+        )
+        return Response(ColleagueSerializer(colleagues, many=True).data)
 
 
 class DepartmentViewSet(viewsets.ModelViewSet):
@@ -183,3 +199,42 @@ class TaskViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save(author=request.user, task=task)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class InternalMessageViewSet(viewsets.ModelViewSet):
+    serializer_class = InternalMessageSerializer
+    permission_classes = [IsApprovedUser]
+    http_method_names = ['get', 'post', 'head', 'options']
+
+    def get_queryset(self):
+        user = self.request.user
+        return InternalMessage.objects.filter(
+            Q(sender=user) | Q(receipts__recipient=user)
+        ).select_related(
+            'sender',
+            'recipient_user',
+            'recipient_department',
+            'recipient_position',
+        ).prefetch_related('receipts').distinct()
+
+    def perform_create(self, serializer):
+        serializer.save(sender=self.request.user)
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+    @action(detail=True, methods=['post'])
+    def read(self, request, pk=None):
+        message = self.get_object()
+        receipt = message.receipts.filter(recipient=request.user).first()
+        if receipt is None:
+            return Response(
+                {'detail': 'Message is not in your inbox.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if receipt.read_at is None:
+            receipt.read_at = timezone.now()
+            receipt.save(update_fields=['read_at'])
+        return Response(self.get_serializer(message).data)

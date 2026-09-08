@@ -109,3 +109,19 @@ export function getPublicDepartments() {
 export function getPublicPositions() {
   return axios.get(`${API_URL}/public/positions/`);
 }
+
+export function getColleagues(token) {
+  return axios.get(`${API_URL}/colleagues/`, { headers: authHeaders(token) });
+}
+
+export function getMessages(token) {
+  return axios.get(`${API_URL}/messages/`, { headers: authHeaders(token) });
+}
+
+export function createMessage(token, data) {
+  return axios.post(`${API_URL}/messages/`, data, { headers: authHeaders(token) });
+}
+
+export function markMessageRead(token, id) {
+  return axios.post(`${API_URL}/messages/${id}/read/`, {}, { headers: authHeaders(token) });
+}

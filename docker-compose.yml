@@ -41,13 +41,9 @@ services:
     build: ./frontend
     container_name: frontend
     restart: always
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
     ports:
-      - "5173:5173"
-    environment:
-      - CHOKIDAR_USEPOLLING=true
+      # nginx listens on 80 inside the image; keep host :5173 for convenience
+      - "5173:80"
     networks:
       - task-crm
 volumes:

@@ -2,7 +2,9 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 from .views import (
+    ColleagueListView,
     DepartmentViewSet,
+    InternalMessageViewSet,
     PositionViewSet,
     UserViewSet,
     TaskViewSet,
@@ -18,6 +20,7 @@ router.register(r'tasks', TaskViewSet, basename='task')
 router.register(r'departments', DepartmentViewSet, basename='department')
 router.register(r'positions', PositionViewSet, basename='position')
 router.register(r'users', UserViewSet, basename='user')
+router.register(r'messages', InternalMessageViewSet, basename='message')
 
 urlpatterns = [
     path('me/', MeView.as_view(), name='me'),
@@ -25,5 +28,6 @@ urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
     path('public/departments/', PublicDepartmentListView.as_view(), name='public-departments'),
     path('public/positions/', PublicPositionListView.as_view(), name='public-positions'),
+    path('colleagues/', ColleagueListView.as_view(), name='colleagues'),
     path('', include(router.urls)),
 ]

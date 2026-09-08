@@ -25,6 +25,10 @@ import {
   createPosition,
   updatePosition,
   deletePosition,
+  getColleagues,
+  getMessages,
+  createMessage,
+  markMessageRead,
 } from './api';
 import Modal from './components/Modal';
 import KanbanBoard from './components/KanbanBoard';
@@ -53,6 +57,13 @@ const TASK_STATUS_LABELS = {
   done: 'Done',
 };
 
+const RECIPIENT_TYPE_LABELS = {
+  user: 'Colleague',
+  department: 'Department',
+  position: 'Job title',
+  all: 'Everyone',
+};
+
 function toDateInputValue(value) {
   if (!value) return '';
   return String(value).slice(0, 10);
@@ -78,15 +89,77 @@ const btnMuted =
 const cardClass = 'rounded-lg border border-slate-200 bg-white p-4 shadow-sm';
 
 const navClass = ({ isActive }) =>
-  `rounded-md px-3 py-1.5 text-sm font-medium text-white no-underline ${
+  `inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-white no-underline ${
     isActive ? 'bg-sky-600' : 'bg-slate-500 hover:bg-slate-600'
   }`;
+
+function NavIcon({ children }) {
+  return (
+    <svg
+      className="h-4 w-4 shrink-0"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      aria-hidden="true"
+    >
+      {children}
+    </svg>
+  );
+}
+
+function BoardIcon() {
+  return (
+    <NavIcon>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+    </NavIcon>
+  );
+}
+
+function MessagesIcon() {
+  return (
+    <NavIcon>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+    </NavIcon>
+  );
+}
+
+function EmployeesIcon() {
+  return (
+    <NavIcon>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+    </NavIcon>
+  );
+}
+
+function DepartmentsIcon() {
+  return (
+    <NavIcon>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+    </NavIcon>
+  );
+}
+
+function JobTitlesIcon() {
+  return (
+    <NavIcon>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 0 0 .75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 0 0-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0 1 12 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 0 1-.673-.38m0 0A2.18 2.18 0 0 1 3 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 0 1 3.413-.387m7.5 0V5.25A2.25 2.25 0 0 0 13.5 3h-3a2.25 2.25 0 0 0-2.25 2.25v.931m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+    </NavIcon>
+  );
+}
 
 function userIsSuperAdmin(user) {
   return Boolean(
     user &&
     (user.role === 'super_admin' || user.is_staff || user.is_superuser)
   );
+}
+
+function messageRecipientLabel(msg) {
+  if (msg.recipient_type === 'all') return 'Everyone';
+  if (msg.recipient_type === 'department') return msg.recipient_department_name || 'Department';
+  if (msg.recipient_type === 'position') return msg.recipient_position_name || 'Job title';
+  return msg.recipient_user_username || 'Colleague';
 }
 
 function App() {
@@ -102,6 +175,8 @@ function App() {
   const [users, setUsers] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [positions, setPositions] = useState([]);
+  const [colleagues, setColleagues] = useState([]);
+  const [messages, setMessages] = useState([]);
 
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [editingUserId, setEditingUserId] = useState(null);
@@ -110,6 +185,8 @@ function App() {
 
   const [createModal, setCreateModal] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [messageRecipientType, setMessageRecipientType] = useState('user');
   const [comments, setComments] = useState([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [commentText, setCommentText] = useState('');
@@ -147,14 +224,18 @@ function App() {
       const approved = userIsSuperAdmin(meRes.data) || meRes.data.status === 'approved';
       if (!approved) return;
 
-      const [tasksRes, deptsRes, positionsRes] = await Promise.all([
+      const [tasksRes, deptsRes, positionsRes, messagesRes, colleaguesRes] = await Promise.all([
         getTasks(token),
         getDepartments(token),
         getPositions(token),
+        getMessages(token),
+        getColleagues(token),
       ]);
       setTasks(tasksRes.data);
       setDepartments(deptsRes.data);
       setPositions(positionsRes.data);
+      setMessages(messagesRes.data);
+      setColleagues(colleaguesRes.data);
 
       if (userIsSuperAdmin(meRes.data) || meRes.data.role === 'manager') {
         const usersRes = await getUsers(token);
@@ -263,8 +344,11 @@ function App() {
     setUsers([]);
     setDepartments([]);
     setPositions([]);
+    setColleagues([]);
+    setMessages([]);
     setCreateModal(null);
     setSelectedTask(null);
+    setSelectedMessage(null);
     setComments([]);
     setCommentText('');
     setEditingTaskId(null);
@@ -459,6 +543,48 @@ function App() {
     }
   };
 
+  const handleCreateMessage = async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const data = {
+      recipient_type: messageRecipientType,
+      title: form.title.value.trim(),
+      text: form.text.value.trim(),
+    };
+    if (messageRecipientType === 'user' && form.recipient_user.value) {
+      data.recipient_user = Number(form.recipient_user.value);
+    }
+    if (messageRecipientType === 'department' && form.recipient_department.value) {
+      data.recipient_department = Number(form.recipient_department.value);
+    }
+    if (messageRecipientType === 'position' && form.recipient_position.value) {
+      data.recipient_position = Number(form.recipient_position.value);
+    }
+    try {
+      await createMessage(token, data);
+      setCreateModal(null);
+      setMessageRecipientType('user');
+      loadAll();
+    } catch (err) {
+      setMessage(showError(err, 'Failed to send message'));
+    }
+  };
+
+  const handleOpenMessage = async (msg) => {
+    setSelectedMessage(msg);
+    const isInbox = msg.sender !== currentUser.id;
+    if (!isInbox || msg.is_read) return;
+    try {
+      const res = await markMessageRead(token, msg.id);
+      setMessages((prev) => prev.map((item) => (item.id === msg.id ? res.data : item)));
+      setSelectedMessage(res.data);
+    } catch (err) {
+      if (err.response?.status !== 404) {
+        setMessage(showError(err, 'Failed to mark message as read'));
+      }
+    }
+  };
+
   const assignableUsers = isSuperAdmin
     ? users.filter((u) => u.status === 'approved')
     : users.filter((u) => u.status === 'approved' && u.role !== 'super_admin');
@@ -466,6 +592,16 @@ function App() {
   const roleOptions = isSuperAdmin
     ? ['employee', 'manager', 'super_admin']
     : ['employee', 'manager'];
+
+  const messageRecipientTypes = isSuperAdmin
+    ? ['user', 'department', 'position', 'all']
+    : isManager
+      ? ['user', 'department']
+      : ['user'];
+
+  const unreadCount = messages.filter(
+    (msg) => msg.sender !== currentUser?.id && !msg.is_read,
+  ).length;
 
   const pageHeader = (title, count, createLabel, createKey, showCreate = true) => (
     <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -583,10 +719,32 @@ function App() {
           )}
 
           <nav className="flex flex-wrap gap-2">
-            <NavLink to="/tasks" className={navClass}>Board</NavLink>
-            {canManage && <NavLink to="/employees" className={navClass}>Employees</NavLink>}
-            {canManage && <NavLink to="/departments" className={navClass}>Departments</NavLink>}
-            {canManage && <NavLink to="/positions" className={navClass}>Job titles</NavLink>}
+            <NavLink to="/tasks" className={navClass}>
+              <BoardIcon />
+              Board
+            </NavLink>
+            <NavLink to="/messages" className={navClass}>
+              <MessagesIcon />
+              Messages{unreadCount > 0 ? ` (${unreadCount})` : ''}
+            </NavLink>
+            {canManage && (
+              <NavLink to="/employees" className={navClass}>
+                <EmployeesIcon />
+                Employees
+              </NavLink>
+            )}
+            {canManage && (
+              <NavLink to="/departments" className={navClass}>
+                <DepartmentsIcon />
+                Departments
+              </NavLink>
+            )}
+            {canManage && (
+              <NavLink to="/positions" className={navClass}>
+                <JobTitlesIcon />
+                Job titles
+              </NavLink>
+            )}
           </nav>
         </div>
 
@@ -611,6 +769,62 @@ function App() {
                     onDeleteTask={(id) => deleteTask(token, id).then(loadAll)}
                     onStatusChange={handleTaskStatusChange}
                   />
+                </div>
+              )}
+            />
+
+            <Route
+              path="/messages"
+              element={(
+                <div>
+                  {pageHeader('Messages', messages.length, 'Write message', 'message')}
+                  <div className="space-y-3">
+                    {messages.length === 0 ? (
+                      <p className="text-slate-500">No messages</p>
+                    ) : messages.map((msg) => {
+                      const isSent = msg.sender === currentUser.id;
+                      const unread = !isSent && !msg.is_read;
+                      return (
+                        <button
+                          key={msg.id}
+                          type="button"
+                          onClick={() => handleOpenMessage(msg)}
+                          className={`${cardClass} w-full text-left transition hover:border-sky-300 ${
+                            unread ? 'border-sky-300 bg-sky-50' : ''
+                          }`}
+                        >
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                {unread && (
+                                  <span className="inline-block h-2 w-2 rounded-full bg-sky-600" />
+                                )}
+                                <strong className={unread ? 'text-slate-900' : 'text-slate-800'}>
+                                  {msg.title}
+                                </strong>
+                                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                                  {isSent ? 'Sent' : 'Inbox'}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-sm text-slate-500">
+                                {isSent
+                                  ? `To: ${messageRecipientLabel(msg)}`
+                                  : `From: ${msg.sender_username || 'Unknown'}`}
+                                {' · '}
+                                {RECIPIENT_TYPE_LABELS[msg.recipient_type] || msg.recipient_type}
+                              </p>
+                            </div>
+                            <span className="text-xs text-slate-400">
+                              {msg.created_at ? new Date(msg.created_at).toLocaleString() : ''}
+                            </span>
+                          </div>
+                          <p className="mt-2 line-clamp-2 text-sm text-slate-600">
+                            {msg.text}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             />
@@ -939,6 +1153,110 @@ function App() {
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setPasswordModalOpen(false)} className={btnMuted}>Cancel</button>
               <button type="submit" className={btnPrimary}>Save</button>
+            </div>
+          </form>
+        </Modal>
+
+        <Modal
+          open={Boolean(selectedMessage)}
+          title={selectedMessage?.title || 'Message'}
+          onClose={() => setSelectedMessage(null)}
+          wide
+        >
+          {selectedMessage && (
+            <div className="grid gap-3 text-sm text-slate-700">
+              <div>
+                <span className="font-semibold">From:</span>{' '}
+                {selectedMessage.sender_username || 'Unknown'}
+              </div>
+              <div>
+                <span className="font-semibold">To:</span>{' '}
+                {messageRecipientLabel(selectedMessage)}
+                {' '}
+                ({RECIPIENT_TYPE_LABELS[selectedMessage.recipient_type] || selectedMessage.recipient_type})
+              </div>
+              <div>
+                <span className="font-semibold">Date:</span>{' '}
+                {selectedMessage.created_at
+                  ? new Date(selectedMessage.created_at).toLocaleString()
+                  : '—'}
+              </div>
+              <div>
+                <strong className="mb-2 block">Message</strong>
+                <p className="whitespace-pre-wrap rounded-lg bg-slate-50 p-3 leading-relaxed">
+                  {selectedMessage.text}
+                </p>
+              </div>
+            </div>
+          )}
+        </Modal>
+
+        <Modal
+          open={createModal === 'message'}
+          title="Write message"
+          onClose={() => {
+            setCreateModal(null);
+            setMessageRecipientType('user');
+          }}
+        >
+          <form onSubmit={handleCreateMessage} className="grid gap-3">
+            <label className={labelClass}>Recipient</label>
+            <select
+              name="recipient_type"
+              value={messageRecipientType}
+              onChange={(e) => setMessageRecipientType(e.target.value)}
+              className={fieldClass}
+            >
+              {messageRecipientTypes.map((type) => (
+                <option key={type} value={type}>{RECIPIENT_TYPE_LABELS[type]}</option>
+              ))}
+            </select>
+            {messageRecipientType === 'user' && (
+              <select name="recipient_user" className={fieldClass} required defaultValue="">
+                <option value="" disabled>— Select colleague —</option>
+                {colleagues.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.username}
+                    {user.department_name ? ` (${user.department_name})` : ''}
+                  </option>
+                ))}
+              </select>
+            )}
+            {messageRecipientType === 'department' && (
+              <select name="recipient_department" className={fieldClass} required defaultValue={departments[0]?.id || ''}>
+                <option value="" disabled>— Select department —</option>
+                {departments.map((dept) => (
+                  <option key={dept.id} value={dept.id}>{dept.name}</option>
+                ))}
+              </select>
+            )}
+            {messageRecipientType === 'position' && (
+              <select name="recipient_position" className={fieldClass} required defaultValue="">
+                <option value="" disabled>— Select job title —</option>
+                {positions.map((position) => (
+                  <option key={position.id} value={position.id}>{position.name}</option>
+                ))}
+              </select>
+            )}
+            <input name="title" placeholder="Subject" className={fieldClass} required />
+            <textarea
+              name="text"
+              placeholder="Write a message"
+              className={`${fieldClass} min-h-[120px]`}
+              required
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setCreateModal(null);
+                  setMessageRecipientType('user');
+                }}
+                className={btnMuted}
+              >
+                Cancel
+              </button>
+              <button type="submit" className={btnSuccess}>Send</button>
             </div>
           </form>
         </Modal>
