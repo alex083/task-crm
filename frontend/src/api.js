@@ -26,6 +26,10 @@ function clearTokens() {
   localStorage.removeItem('refresh_token');
 }
 
+function notifySessionExpired() {
+  window.dispatchEvent(new Event('session-expired'));
+}
+
 function processQueue(error, token = null) {
   pendingRequests.forEach(({ resolve, reject }) => {
     if (error) reject(error);
@@ -73,6 +77,7 @@ api.interceptors.response.use(
     if (!refresh) {
       isRefreshing = false;
       clearTokens();
+      notifySessionExpired();
       return Promise.reject(error);
     }
 
@@ -88,6 +93,7 @@ api.interceptors.response.use(
     } catch (refreshError) {
       processQueue(refreshError, null);
       clearTokens();
+      notifySessionExpired();
       return Promise.reject(refreshError);
     } finally {
       isRefreshing = false;

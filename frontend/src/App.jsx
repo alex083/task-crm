@@ -214,6 +214,29 @@ function App() {
     return fallback;
   };
 
+  const handleLogout = useCallback((reason) => {
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    setToken('');
+    setCurrentUser(null);
+    setTasks([]);
+    setUsers([]);
+    setDepartments([]);
+    setPositions([]);
+    setColleagues([]);
+    setMessages([]);
+    setCreateModal(null);
+    setSelectedTask(null);
+    setSelectedMessage(null);
+    setComments([]);
+    setCommentText('');
+    setEditingTaskId(null);
+    setPasswordModalOpen(false);
+    setSuccessMessage('');
+    setMessage(reason === 'expired' ? 'Session expired. Please sign in again.' : '');
+    navigate('/', { replace: true });
+  }, [navigate]);
+
   const loadAll = useCallback(async () => {
     if (!token) return;
     setLoading(true);
@@ -243,18 +266,24 @@ function App() {
       }
     } catch (err) {
       if (err.response?.status === 401 || !localStorage.getItem('access_token')) {
-        handleLogout();
+        handleLogout('expired');
       } else {
         setMessage(showError(err, 'Failed to load data'));
       }
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, handleLogout]);
 
   useEffect(() => {
     if (token) loadAll();
   }, [token, loadAll]);
+
+  useEffect(() => {
+    const onExpired = () => handleLogout('expired');
+    window.addEventListener('session-expired', onExpired);
+    return () => window.removeEventListener('session-expired', onExpired);
+  }, [handleLogout]);
 
   useEffect(() => {
     if (!token || !selectedTask?.id) {
@@ -336,28 +365,6 @@ function App() {
     } catch (err) {
       setMessage(showError(err, 'Registration failed'));
     }
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    setToken('');
-    setCurrentUser(null);
-    setTasks([]);
-    setUsers([]);
-    setDepartments([]);
-    setPositions([]);
-    setColleagues([]);
-    setMessages([]);
-    setCreateModal(null);
-    setSelectedTask(null);
-    setSelectedMessage(null);
-    setComments([]);
-    setCommentText('');
-    setEditingTaskId(null);
-    setPasswordModalOpen(false);
-    setSuccessMessage('');
-    navigate('/');
   };
 
   const handleChangePassword = async (e) => {
