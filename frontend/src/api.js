@@ -2,96 +2,183 @@ import axios from 'axios';
 
 const API_URL = 'http://localhost:8000/api';
 
-export function authHeaders(token) {
-  return { Authorization: `Bearer ${token}` };
+const api = axios.create({
+  baseURL: API_URL,
+});
+
+let isRefreshing = false;
+let pendingRequests = [];
+
+function getAccessToken() {
+  return localStorage.getItem('access_token') || '';
 }
 
-export function getMe(token) {
-  return axios.get(`${API_URL}/me/`, { headers: authHeaders(token) });
+function getRefreshToken() {
+  return localStorage.getItem('refresh_token') || '';
 }
 
-export function changePassword(token, data) {
-  return axios.post(`${API_URL}/me/change-password/`, data, {
-    headers: authHeaders(token),
+function setAccessToken(token) {
+  localStorage.setItem('access_token', token);
+}
+
+function clearTokens() {
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+}
+
+function notifySessionExpired() {
+  window.dispatchEvent(new Event('session-expired'));
+}
+
+function processQueue(error, token = null) {
+  pendingRequests.forEach(({ resolve, reject }) => {
+    if (error) reject(error);
+    else resolve(token);
   });
+  pendingRequests = [];
 }
 
-export function getTasks(token) {
-  return axios.get(`${API_URL}/tasks/`, { headers: authHeaders(token) });
+api.interceptors.request.use((config) => {
+  const token = getAccessToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+    const status = error.response?.status;
+
+    if (
+      status !== 401 ||
+      !originalRequest ||
+      originalRequest._retry ||
+      originalRequest.url?.includes('/token/')
+    ) {
+      return Promise.reject(error);
+    }
+
+    if (isRefreshing) {
+      return new Promise((resolve, reject) => {
+        pendingRequests.push({ resolve, reject });
+      }).then((token) => {
+        originalRequest.headers.Authorization = `Bearer ${token}`;
+        return api(originalRequest);
+      });
+    }
+
+    originalRequest._retry = true;
+    isRefreshing = true;
+
+    const refresh = getRefreshToken();
+    if (!refresh) {
+      isRefreshing = false;
+      clearTokens();
+      notifySessionExpired();
+      return Promise.reject(error);
+    }
+
+    try {
+      const { data } = await axios.post(`${API_URL}/token/refresh/`, {
+        refresh,
+      });
+      const newAccess = data.access;
+      setAccessToken(newAccess);
+      processQueue(null, newAccess);
+      originalRequest.headers.Authorization = `Bearer ${newAccess}`;
+      return api(originalRequest);
+    } catch (refreshError) {
+      processQueue(refreshError, null);
+      clearTokens();
+      notifySessionExpired();
+      return Promise.reject(refreshError);
+    } finally {
+      isRefreshing = false;
+    }
+  },
+);
+
+export function getMe() {
+  return api.get('/me/');
 }
 
-export function createTask(token, data) {
-  return axios.post(`${API_URL}/tasks/`, data, { headers: authHeaders(token) });
+export function changePassword(data) {
+  return api.post('/me/change-password/', data);
 }
 
-export function updateTask(token, id, data) {
-  return axios.patch(`${API_URL}/tasks/${id}/`, data, { headers: authHeaders(token) });
+export function getTasks() {
+  return api.get('/tasks/');
 }
 
-export function deleteTask(token, id) {
-  return axios.delete(`${API_URL}/tasks/${id}/`, { headers: authHeaders(token) });
+export function createTask(data) {
+  return api.post('/tasks/', data);
 }
 
-export function getTaskComments(token, taskId) {
-  return axios.get(`${API_URL}/tasks/${taskId}/comments/`, {
-    headers: authHeaders(token),
-  });
+export function updateTask(id, data) {
+  return api.patch(`/tasks/${id}/`, data);
 }
 
-export function createTaskComment(token, taskId, text) {
-  return axios.post(
-    `${API_URL}/tasks/${taskId}/comments/`,
-    { text },
-    { headers: authHeaders(token) },
-  );
+export function deleteTask(id) {
+  return api.delete(`/tasks/${id}/`);
 }
 
-export function getUsers(token) {
-  return axios.get(`${API_URL}/users/`, { headers: authHeaders(token) });
+export function getTaskComments(taskId) {
+  return api.get(`/tasks/${taskId}/comments/`);
 }
 
-export function createUser(token, data) {
-  return axios.post(`${API_URL}/users/`, data, { headers: authHeaders(token) });
+export function createTaskComment(taskId, text) {
+  return api.post(`/tasks/${taskId}/comments/`, { text });
 }
 
-export function updateUser(token, id, data) {
-  return axios.patch(`${API_URL}/users/${id}/`, data, { headers: authHeaders(token) });
+export function getUsers() {
+  return api.get('/users/');
 }
 
-export function deleteUser(token, id) {
-  return axios.delete(`${API_URL}/users/${id}/`, { headers: authHeaders(token) });
+export function createUser(data) {
+  return api.post('/users/', data);
 }
 
-export function getDepartments(token) {
-  return axios.get(`${API_URL}/departments/`, { headers: authHeaders(token) });
+export function updateUser(id, data) {
+  return api.patch(`/users/${id}/`, data);
 }
 
-export function createDepartment(token, data) {
-  return axios.post(`${API_URL}/departments/`, data, { headers: authHeaders(token) });
+export function deleteUser(id) {
+  return api.delete(`/users/${id}/`);
 }
 
-export function updateDepartment(token, id, data) {
-  return axios.patch(`${API_URL}/departments/${id}/`, data, { headers: authHeaders(token) });
+export function getDepartments() {
+  return api.get('/departments/');
 }
 
-export function deleteDepartment(token, id) {
-  return axios.delete(`${API_URL}/departments/${id}/`, { headers: authHeaders(token) });
+export function createDepartment(data) {
+  return api.post('/departments/', data);
 }
 
-export function getPositions(token) {
-  return axios.get(`${API_URL}/positions/`, { headers: authHeaders(token) });
+export function updateDepartment(id, data) {
+  return api.patch(`/departments/${id}/`, data);
 }
 
-export function createPosition(token, data) {
-  return axios.post(`${API_URL}/positions/`, data, { headers: authHeaders(token) });
+export function deleteDepartment(id) {
+  return api.delete(`/departments/${id}/`);
 }
 
-export function updatePosition(token, id, data) {
-  return axios.patch(`${API_URL}/positions/${id}/`, data, { headers: authHeaders(token) });
+export function getPositions() {
+  return api.get('/positions/');
 }
 
-export function deletePosition(token, id) {
-  return axios.delete(`${API_URL}/positions/${id}/`, { headers: authHeaders(token) });
+export function createPosition(data) {
+  return api.post('/positions/', data);
+}
+
+export function updatePosition(id, data) {
+  return api.patch(`/positions/${id}/`, data);
+}
+
+export function deletePosition(id) {
+  return api.delete(`/positions/${id}/`);
 }
 
 export function login(username, password) {
@@ -108,4 +195,20 @@ export function getPublicDepartments() {
 
 export function getPublicPositions() {
   return axios.get(`${API_URL}/public/positions/`);
+}
+
+export function getColleagues() {
+  return api.get('/colleagues/');
+}
+
+export function getMessages() {
+  return api.get('/messages/');
+}
+
+export function createMessage(data) {
+  return api.post('/messages/', data);
+}
+
+export function markMessageRead(id) {
+  return api.post(`/messages/${id}/read/`, {});
 }
