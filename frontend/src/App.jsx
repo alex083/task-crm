@@ -908,8 +908,8 @@ function App() {
                             </div>
                           </form>
                         ) : (
-                          <>
-                            <div className="flex flex-wrap items-baseline gap-2">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div className="min-w-0 flex flex-wrap items-baseline gap-2">
                               <strong className="text-slate-800">{user.username}</strong>
                               <span className="text-sm text-slate-500">
                                 {ROLE_LABELS[user.role]} · {STATUS_LABELS[user.status]}
@@ -921,7 +921,7 @@ function App() {
                                 <span className="text-sm text-slate-500">{user.position_name}</span>
                               )}
                             </div>
-                            <div className="mt-3 flex gap-2">
+                            <div className="flex shrink-0 gap-2">
                               <button onClick={() => setEditingUserId(user.id)} className={btnEdit}>Edit</button>
                               {user.id !== currentUser.id && (
                                 <button
@@ -932,7 +932,7 @@ function App() {
                                 </button>
                               )}
                             </div>
-                          </>
+                          </div>
                         )}
                       </div>
                     ))}
