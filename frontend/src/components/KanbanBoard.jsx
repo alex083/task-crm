@@ -1,4 +1,5 @@
 import React from 'react';
+import Select from './Select';
 
 const PRIORITY_STYLES = {
   high: 'bg-rose-100 text-rose-700 ring-rose-200',
@@ -103,15 +104,13 @@ function KanbanBoard({
                         className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-2"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <select
-                          className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
+                        <Select
+                          className="min-w-0 flex-1"
+                          size="sm"
                           value={task.status}
-                          onChange={(e) => onStatusChange(task, e.target.value)}
-                        >
-                          {COLUMNS.map((c) => (
-                            <option key={c.key} value={c.key}>{c.title}</option>
-                          ))}
-                        </select>
+                          onChange={(status) => onStatusChange(task, status)}
+                          options={COLUMNS.map((c) => ({ value: c.key, label: c.title }))}
+                        />
                         <button
                           type="button"
                           className="rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-xs font-medium text-sky-700 transition hover:bg-sky-100"

@@ -31,6 +31,7 @@ import {
   markMessageRead,
 } from './api';
 import Modal from './components/Modal';
+import Select from './components/Select';
 import KanbanBoard from './components/KanbanBoard';
 
 const ROLE_LABELS = {
@@ -647,16 +648,16 @@ function App() {
         defaultValue={task?.description || ''}
         className={`${fieldClass} min-h-[90px]`}
       />
-      <select name="priority" defaultValue={task?.priority || 'medium'} className={fieldClass}>
-        {Object.entries(PRIORITY_LABELS).map(([v, l]) => (
-          <option key={v} value={v}>{l}</option>
-        ))}
-      </select>
-      <select name="status" defaultValue={task?.status || 'todo'} className={fieldClass}>
-        {Object.entries(TASK_STATUS_LABELS).map(([v, l]) => (
-          <option key={v} value={v}>{l}</option>
-        ))}
-      </select>
+      <Select
+        name="priority"
+        defaultValue={task?.priority || 'medium'}
+        options={Object.entries(PRIORITY_LABELS).map(([value, label]) => ({ value, label }))}
+      />
+      <Select
+        name="status"
+        defaultValue={task?.status || 'todo'}
+        options={Object.entries(TASK_STATUS_LABELS).map(([value, label]) => ({ value, label }))}
+      />
 
       <label className={labelClass}>Due date</label>
       <input
@@ -667,20 +668,26 @@ function App() {
       />
       
       {isSuperAdmin && (
-        <select name="department" defaultValue={task?.department || ''} className={fieldClass}>
-          <option value="">— Department —</option>
-          {departments.map((d) => (
-            <option key={d.id} value={d.id}>{d.name}</option>
-          ))}
-        </select>
+        <Select
+          name="department"
+          defaultValue={task?.department || ''}
+          placeholder="— Department —"
+          options={[
+            { value: '', label: '— Department —' },
+            ...departments.map((d) => ({ value: d.id, label: d.name })),
+          ]}
+        />
       )}
       {canManage && (
-        <select name="assigned_to" defaultValue={task?.assigned_to || ''} className={fieldClass}>
-          <option value="">— Assignee —</option>
-          {assignableUsers.map((u) => (
-            <option key={u.id} value={u.id}>{u.username}</option>
-          ))}
-        </select>
+        <Select
+          name="assigned_to"
+          defaultValue={task?.assigned_to || ''}
+          placeholder="— Assignee —"
+          options={[
+            { value: '', label: '— Assignee —' },
+            ...assignableUsers.map((u) => ({ value: u.id, label: u.username })),
+          ]}
+        />
       )}
     </>
   );
@@ -878,30 +885,36 @@ function App() {
                             <input name="first_name" defaultValue={user.first_name} className={fieldClass} />
                             <input name="last_name" defaultValue={user.last_name} className={fieldClass} />
                             <input name="password" type="password" placeholder="New password (optional)" className={fieldClass} />
-                            <select name="role" defaultValue={user.role} className={fieldClass}>
-                              {roleOptions.map((r) => (
-                                <option key={r} value={r}>{ROLE_LABELS[r]}</option>
-                              ))}
-                            </select>
-                            <select name="status" defaultValue={user.status} className={fieldClass}>
-                              {Object.entries(STATUS_LABELS).map(([v, l]) => (
-                                <option key={v} value={v}>{l}</option>
-                              ))}
-                            </select>
+                            <Select
+                              name="role"
+                              defaultValue={user.role}
+                              options={roleOptions.map((r) => ({ value: r, label: ROLE_LABELS[r] }))}
+                            />
+                            <Select
+                              name="status"
+                              defaultValue={user.status}
+                              options={Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))}
+                            />
                             {isSuperAdmin && (
-                              <select name="department" defaultValue={user.department || ''} className={fieldClass}>
-                                <option value="">— No department —</option>
-                                {departments.map((d) => (
-                                  <option key={d.id} value={d.id}>{d.name}</option>
-                                ))}
-                              </select>
+                              <Select
+                                name="department"
+                                defaultValue={user.department || ''}
+                                placeholder="— No department —"
+                                options={[
+                                  { value: '', label: '— No department —' },
+                                  ...departments.map((d) => ({ value: d.id, label: d.name })),
+                                ]}
+                              />
                             )}
-                            <select name="position" defaultValue={user.position || ''} className={fieldClass}>
-                              <option value="">— No job title —</option>
-                              {positions.map((p) => (
-                                <option key={p.id} value={p.id}>{p.name}</option>
-                              ))}
-                            </select>
+                            <Select
+                              name="position"
+                              defaultValue={user.position || ''}
+                              placeholder="— No job title —"
+                              options={[
+                                { value: '', label: '— No job title —' },
+                                ...positions.map((p) => ({ value: p.id, label: p.name })),
+                              ]}
+                            />
                             <div className="flex gap-2">
                               <button type="submit" className={btnPrimary}>Save</button>
                               <button type="button" onClick={() => setEditingUserId(null)} className={btnMuted}>Cancel</button>
@@ -1231,42 +1244,49 @@ function App() {
         >
           <form onSubmit={handleCreateMessage} className="grid gap-3">
             <label className={labelClass}>Recipient</label>
-            <select
+            <Select
               name="recipient_type"
               value={messageRecipientType}
-              onChange={(e) => setMessageRecipientType(e.target.value)}
-              className={fieldClass}
-            >
-              {messageRecipientTypes.map((type) => (
-                <option key={type} value={type}>{RECIPIENT_TYPE_LABELS[type]}</option>
-              ))}
-            </select>
+              onChange={setMessageRecipientType}
+              options={messageRecipientTypes.map((type) => ({
+                value: type,
+                label: RECIPIENT_TYPE_LABELS[type],
+              }))}
+            />
             {messageRecipientType === 'user' && (
-              <select name="recipient_user" className={fieldClass} required defaultValue="">
-                <option value="" disabled>— Select colleague —</option>
-                {colleagues.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.username}
-                    {user.department_name ? ` (${user.department_name})` : ''}
-                  </option>
-                ))}
-              </select>
+              <Select
+                name="recipient_user"
+                required
+                defaultValue=""
+                placeholder="— Select colleague —"
+                options={colleagues.map((user) => ({
+                  value: user.id,
+                  label: user.department_name
+                    ? `${user.username} (${user.department_name})`
+                    : user.username,
+                }))}
+              />
             )}
             {messageRecipientType === 'department' && (
-              <select name="recipient_department" className={fieldClass} required defaultValue={departments[0]?.id || ''}>
-                <option value="" disabled>— Select department —</option>
-                {departments.map((dept) => (
-                  <option key={dept.id} value={dept.id}>{dept.name}</option>
-                ))}
-              </select>
+              <Select
+                name="recipient_department"
+                required
+                defaultValue={departments[0]?.id || ''}
+                placeholder="— Select department —"
+                options={departments.map((dept) => ({ value: dept.id, label: dept.name }))}
+              />
             )}
             {messageRecipientType === 'position' && (
-              <select name="recipient_position" className={fieldClass} required defaultValue="">
-                <option value="" disabled>— Select job title —</option>
-                {positions.map((position) => (
-                  <option key={position.id} value={position.id}>{position.name}</option>
-                ))}
-              </select>
+              <Select
+                name="recipient_position"
+                required
+                defaultValue=""
+                placeholder="— Select job title —"
+                options={positions.map((position) => ({
+                  value: position.id,
+                  label: position.name,
+                }))}
+              />
             )}
             <input name="title" placeholder="Subject" className={fieldClass} required />
             <textarea
@@ -1308,30 +1328,36 @@ function App() {
             <input name="password" type="password" placeholder="Password" className={fieldClass} required />
             <input name="first_name" placeholder="First name" className={fieldClass} />
             <input name="last_name" placeholder="Last name" className={fieldClass} />
-            <select name="role" defaultValue="employee" className={fieldClass}>
-              {roleOptions.map((r) => (
-                <option key={r} value={r}>{ROLE_LABELS[r]}</option>
-              ))}
-            </select>
-            <select name="status" defaultValue="approved" className={fieldClass}>
-              {Object.entries(STATUS_LABELS).map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
-            </select>
+            <Select
+              name="role"
+              defaultValue="employee"
+              options={roleOptions.map((r) => ({ value: r, label: ROLE_LABELS[r] }))}
+            />
+            <Select
+              name="status"
+              defaultValue="approved"
+              options={Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))}
+            />
             {isSuperAdmin && (
-              <select name="department" className={fieldClass}>
-                <option value="">— Department —</option>
-                {departments.map((d) => (
-                  <option key={d.id} value={d.id}>{d.name}</option>
-                ))}
-              </select>
+              <Select
+                name="department"
+                defaultValue=""
+                placeholder="— Department —"
+                options={[
+                  { value: '', label: '— Department —' },
+                  ...departments.map((d) => ({ value: d.id, label: d.name })),
+                ]}
+              />
             )}
-            <select name="position" className={fieldClass} defaultValue="">
-              <option value="">— Job title —</option>
-              {positions.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
+            <Select
+              name="position"
+              defaultValue=""
+              placeholder="— Job title —"
+              options={[
+                { value: '', label: '— Job title —' },
+                ...positions.map((p) => ({ value: p.id, label: p.name })),
+              ]}
+            />
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setCreateModal(null)} className={btnMuted}>Cancel</button>
               <button type="submit" className={btnSuccess}>Create</button>
@@ -1395,21 +1421,25 @@ function App() {
               </div>
               <div>
                 <label className={labelClass}>Department</label>
-                <select name="department" className={fieldClass} required defaultValue="">
-                  <option value="" disabled>— Select department —</option>
-                  {publicDepartments.map((d) => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
+                <Select
+                  name="department"
+                  required
+                  defaultValue=""
+                  placeholder="— Select department —"
+                  options={publicDepartments.map((d) => ({ value: d.id, label: d.name }))}
+                />
               </div>
               <div>
                 <label className={labelClass}>Job title</label>
-                <select name="position" className={fieldClass} defaultValue="">
-                  <option value="">— Select job title —</option>
-                  {publicPositions.map((p) => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
+                <Select
+                  name="position"
+                  defaultValue=""
+                  placeholder="— Select job title —"
+                  options={[
+                    { value: '', label: '— Select job title —' },
+                    ...publicPositions.map((p) => ({ value: p.id, label: p.name })),
+                  ]}
+                />
               </div>
               <div>
                 <label className={labelClass}>Password</label>
