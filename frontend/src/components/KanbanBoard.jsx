@@ -104,7 +104,7 @@ function KanbanBoard({
                         onClick={(e) => e.stopPropagation()}
                       >
                         <select
-                          className="min-w-0 flex-1 rounded border border-slate-300 bg-white px-2 py-1 text-xs"
+                          className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 shadow-sm focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20"
                           value={task.status}
                           onChange={(e) => onStatusChange(task, e.target.value)}
                         >
@@ -114,14 +114,14 @@ function KanbanBoard({
                         </select>
                         <button
                           type="button"
-                          className="rounded bg-sky-600 px-2 py-1 text-xs font-medium text-white hover:bg-sky-700"
+                          className="rounded-lg border border-sky-200 bg-sky-50 px-2.5 py-1.5 text-xs font-medium text-sky-700 transition hover:bg-sky-100"
                           onClick={() => onEditTask(task.id)}
                         >
                           Edit
                         </button>
                         <button
                           type="button"
-                          className="rounded bg-rose-600 px-2 py-1 text-xs font-medium text-white hover:bg-rose-700"
+                          className="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100"
                           onClick={() => onDeleteTask(task.id)}
                         >
                           Delete

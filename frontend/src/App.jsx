@@ -76,21 +76,27 @@ function isTaskOverdue(task) {
 }
 
 const fieldClass =
-  'w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500';
-const labelClass = 'mb-1 block text-sm font-medium text-slate-700';
+  'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm transition placeholder:text-slate-400 focus:border-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20';
+const labelClass = 'mb-1.5 block text-sm font-medium text-slate-700';
+const btnBase =
+  'inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50';
 const btnPrimary =
-  'rounded-md bg-sky-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-sky-700';
+  `${btnBase} bg-sky-600 text-white shadow-sm shadow-sky-600/20 hover:bg-sky-700 focus-visible:ring-sky-500`;
 const btnSuccess =
-  'rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-700';
+  `${btnBase} bg-emerald-600 text-white shadow-sm shadow-emerald-600/20 hover:bg-emerald-700 focus-visible:ring-emerald-500`;
 const btnDanger =
-  'rounded-md bg-rose-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-rose-700';
+  `${btnBase} border border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 focus-visible:ring-rose-400`;
+const btnEdit =
+  `${btnBase} border border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 focus-visible:ring-sky-400`;
 const btnMuted =
-  'rounded-md bg-slate-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-600';
-const cardClass = 'rounded-lg border border-slate-200 bg-white p-4 shadow-sm';
+  `${btnBase} border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-800 focus-visible:ring-slate-300`;
+const cardClass = 'rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm';
 
 const navClass = ({ isActive }) =>
-  `inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-white no-underline ${
-    isActive ? 'bg-sky-600' : 'bg-slate-500 hover:bg-slate-600'
+  `inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium no-underline transition ${
+    isActive
+      ? 'bg-sky-600 text-white shadow-sm shadow-sky-600/25'
+      : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
   }`;
 
 function NavIcon({ children }) {
@@ -715,16 +721,30 @@ function App() {
           </div>
 
           {successMessage && (
-            <div className="mb-3 flex items-start justify-between rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+            <div className="mb-3 flex items-start justify-between gap-3 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-800">
               <span>{successMessage}</span>
-              <button type="button" onClick={() => setSuccessMessage('')} className={btnMuted}>×</button>
+              <button
+                type="button"
+                onClick={() => setSuccessMessage('')}
+                className="inline-flex h-6 w-6 items-center justify-center rounded-md text-emerald-700/70 hover:bg-emerald-100 hover:text-emerald-900"
+                aria-label="Dismiss"
+              >
+                ×
+              </button>
             </div>
           )}
 
           {message && (
-            <div className="mb-3 flex items-start justify-between rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-800">
+            <div className="mb-3 flex items-start justify-between gap-3 rounded-lg border border-rose-100 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
               <span>{message}</span>
-              <button type="button" onClick={() => setMessage('')} className={btnMuted}>×</button>
+              <button
+                type="button"
+                onClick={() => setMessage('')}
+                className="inline-flex h-6 w-6 items-center justify-center rounded-md text-rose-700/70 hover:bg-rose-100 hover:text-rose-900"
+                aria-label="Dismiss"
+              >
+                ×
+              </button>
             </div>
           )}
 
@@ -902,7 +922,7 @@ function App() {
                               )}
                             </div>
                             <div className="mt-3 flex gap-2">
-                              <button onClick={() => setEditingUserId(user.id)} className={btnPrimary}>Edit</button>
+                              <button onClick={() => setEditingUserId(user.id)} className={btnEdit}>Edit</button>
                               {user.id !== currentUser.id && (
                                 <button
                                   onClick={() => deleteUser(user.id).then(loadAll)}
@@ -946,7 +966,7 @@ function App() {
                             <strong>{dept.name}</strong>
                             {isSuperAdmin && (
                               <div className="flex gap-2">
-                                <button onClick={() => setEditingDeptId(dept.id)} className={btnPrimary}>Edit</button>
+                                <button onClick={() => setEditingDeptId(dept.id)} className={btnEdit}>Edit</button>
                                 <button
                                   onClick={() => deleteDepartment(dept.id).then(loadAll)}
                                   className={btnDanger}
@@ -996,7 +1016,7 @@ function App() {
                             <strong>{position.name}</strong>
                             {isSuperAdmin && (
                               <div className="flex gap-2">
-                                <button onClick={() => setEditingPositionId(position.id)} className={btnPrimary}>Edit</button>
+                                <button onClick={() => setEditingPositionId(position.id)} className={btnEdit}>Edit</button>
                                 <button
                                   onClick={() => deletePosition(position.id).then(loadAll)}
                                   className={btnDanger}
@@ -1110,7 +1130,7 @@ function App() {
                       setEditingTaskId(selectedTask.id);
                       setSelectedTask(null);
                     }}
-                    className={btnPrimary}
+                    className={btnEdit}
                   >
                     Edit
                   </button>
